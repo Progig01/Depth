@@ -7,6 +7,7 @@ function love.load()
 
 	myWorld = world.newWorld(2,2)
 	myWorld.grids[1][1]:generate()
+	testCell = myWorld.grids[1][1].cells[4][4]
 
 	myEntity = entity.createEntity("playerEntity", myWorld)
 	myEntity.transform:setPosition(100,100)
@@ -34,6 +35,6 @@ end
 
 function love.draw()
     myWorld:debugRender()
-    myWorld:renderCells()
+    --myWorld:renderCells()
     myEntity.renderer:debugRender()
 end

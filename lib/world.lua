@@ -10,6 +10,7 @@ local m = {}
 			x = x,
 			y = y,
 			contents = {},
+			debugHighlight = false,
 			parent = parent
 		}
 
@@ -28,32 +29,29 @@ local m = {}
 
 		function cell:traverse(direction) --Returns the neighboring cell in the given direction
 			local x,y = self:getScreenPos()
+			local ts = self.parent.parent.tileScale
 
-			if direction=="n" 	then return self.parent.parent:getCellAt(x+0, y-1) end --North
-			if direction=="ne" 	then return self.parent.parent:getCellAt(x+1, y-1) end --Northeast
-			if direction=="e" 	then return self.parent.parent:getCellAt(x+1, y+0) end --East
-			if direction=="se" 	then return self.parent.parent:getCellAt(x+1, y+1) end --Southeast
-			if direction=="s" 	then return self.parent.parent:getCellAt(x+0, y+1) end --South
-			if direction=="sw" 	then return self.parent.parent:getCellAt(x-1, y+1) end --Southwest
-			if direction=="w" 	then return self.parent.parent:getCellAt(x-1, y+0) end --West
-			if direction=="nw" 	then return self.parent.parent:getCellAt(x-1, y-1) end --Northwest
+			if direction=="n" 	then return self.parent.parent:getCellAt(x+00, y-ts) end --North
+			if direction=="ne" 	then return self.parent.parent:getCellAt(x+ts, y-ts) end --Northeast
+			if direction=="e" 	then return self.parent.parent:getCellAt(x+ts, y+00) end --East
+			if direction=="se" 	then return self.parent.parent:getCellAt(x+ts, y+ts) end --Southeast
+			if direction=="s" 	then return self.parent.parent:getCellAt(x+00, y+ts) end --South
+			if direction=="sw" 	then return self.parent.parent:getCellAt(x-ts, y+ts) end --Southwest
+			if direction=="w" 	then return self.parent.parent:getCellAt(x-ts, y+00) end --West
+			if direction=="nw" 	then return self.parent.parent:getCellAt(x-ts, y-ts) end --Northwest
 			return nil
 		end
 
 		function cell:getNeighbors()
-			local x = (self.x-1) * self.parent.parent.tileScale
-			local y = (self.y-1) * self.parent.parent.tileScale 
-
-			local neighbors = {
-				self.parent.parent:getCellAt(x-1, y-1),
-				self.parent.parent:getCellAt(x+0, y-1),
-				self.parent.parent:getCellAt(x+1, y-1),
-				self.parent.parent:getCellAt(x-1, y+0),
-				self.parent.parent:getCellAt(x+1, y+0),
-				self.parent.parent:getCellAt(x-1, y+1),
-				self.parent.parent:getCellAt(x+0, y+1),
-				self.parent.parent:getCellAt(x+1, y+1)
-			}
+			local neighbors = {}
+				neighbors[1]=cell:traverse("nw")
+				neighbors[2]=cell:traverse("n")
+				neighbors[3]=cell:traverse("ne")
+				neighbors[4]=cell:traverse("w")
+				neighbors[5]=cell:traverse("e")
+				neighbors[6]=cell:traverse("sw")
+				neighbors[7]=cell:traverse("s")
+				neighbors[8]=cell:traverse("se")
 
 			return neighbors
 		end
@@ -80,6 +78,7 @@ local m = {}
 			local tileScale = self.parent.parent.tileScale
 			local r,g,b,a = love.graphics.getColor()
 			love.graphics.setColor(128,128,128,128)
+			if self.debugHighlight then love.graphics.setColor(1, 0, 0, 1) end
 			love.graphics.rectangle("line", dX, dY, tileScale,tileScale)
 			love.graphics.setColor(r, g, b, a)
 		end
