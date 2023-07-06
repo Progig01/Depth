@@ -15,37 +15,48 @@ local s = {}
 
 			local len = math.sqrt(math.pow(xVec,2) + math.pow(yVec,2))
 			if len ~= 0 then
+				--Get some stuff we're gonna use a loooot
+				local t = entity.transform
+				local scale = t.s
+
 				--Store our initial position before the update
-				local oldX = entity.transform.x
-				local oldY = entity.transform.y
+				local oldX, oldY = t.x, t.y
 
 				--Get the cell our initial position is in
 				local oldCell = entity.world:getCellAt(oldX, oldY)
-				print("OLDCELL", oldCell.x, oldCell.y)
 
 				--Figure out where we should be based on speed and input
-				local newX = entity.transform.x + ((xVec/len)*speed)
-				local newY = entity.transform.y + ((yVec/len)*speed)
+				local newX = t.x + ((xVec/len)*speed)
+				local newY = t.y + ((yVec/len)*speed)
+				--print(newX, newY)
 
 				--Make sure the new position isn't outside the bounds of the world
 				local maxX, maxY = entity.world:getBounds()
-				if newX < 0 then entity.transform.x = 0 end
-				if newX > maxX then entity.transform.x = maxX end
-				if newY < 0 then entity.transform.y = 0 end
-				if newY > maxY then entity.transform.y = maxY end
+				if newX < 0 + scale then newX = 0 + scale end
+				if newY < 0 + scale then newY = 0 + scale end
+				if newX > maxX - scale then newX = maxX - scale end
+				if newY > maxY - scale then newY = maxY - scale end
 
 				--Make sure the new position doesn't place us inside a solid block
-				local testCell = entity.world:getCellAt(newX, newY)
+				local testCell = entity.world:getCellAt(newX, newY) --Make sure we have a fallback
+				local positive = true --If the movement was in a positive direction or not
+
+				--This block is flawed as fuck, but I haven't the attention span to fix it right now ------------
+				if xVec > 0 or yVec > 0 then
+					testCell = entity.world:getCellAt(newX+scale, newY+scale)
+					positive = true
+				elseif xVec < 0 or yVec < 0 then
+					testCell = entity.world:getCellAt(newX-scale, newY-scale)
+					positive = false
+				end
+				--End scuffed shit ------------------------------------------------------------------------------
+
 				if testCell == nil or testCell.contents.solid then
 					newX, newY = oldX, oldY
 				end
 
 				--Make sure the new position didn't skip over a diagonal wall
 				local neighbors = oldCell:getNeighbors()
-
-				for k,v in pairs(neighbors) do
-					v.debugHighlight = true
-				end
 
 				--Make sure we aren't clipping through corners...
 				if neighbors[7] ~= nil and neighbors[5] ~= nil and neighbors[8] ~=nil then
@@ -71,7 +82,7 @@ local s = {}
 
 
 				--Update the position
-				entity.transform.x, entity.transform.y = newX, newY
+				t.x, t.y = newX, newY
 			end
 		end
 	end
