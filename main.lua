@@ -5,7 +5,7 @@ local input = require('lib/input')
 function love.load()
 	math.randomseed(111211811)
 
-	myWorld = world.newWorld(2,2)
+	myWorld = world.newWorld(1,1)
 	myWorld.grids[1][1]:generate()
 	testCell = myWorld.grids[1][1].cells[4][4]
 
@@ -29,12 +29,12 @@ end
 function love.update(dt)
 	myHandler:update(dt)
 	--print(myEntity.transform:getPosition())
-	--print("FPS: " .. 1/dt .. "  TICK: " .. dt*1000 .. "ms")
+	print("FPS: " .. 1/dt .. "  TICK: " .. dt*1000 .. "ms")
 	--print(myWorld:getCellAt(love.mouse.getX(), love.mouse.getY()))
 end
 
 function love.draw()
     myWorld:debugRender()
-    --myWorld:renderCells()
+    myWorld:renderCells()
     myEntity.renderer:debugRender()
 end

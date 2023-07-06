@@ -49,22 +49,22 @@ local s = {}
 
 				--Make sure we aren't clipping through corners...
 				if neighbors[7] ~= nil and neighbors[5] ~= nil and neighbors[8] ~=nil then
-					if neighbors[7].contents.solid and neighbors[5].contents.soilid and testCell == neighbors[8] then --SE corner
+					if neighbors[7].contents.solid and neighbors[5].contents.solid and testCell == neighbors[8] then --SE corner
 						newX, newY = oldX, oldY
 					end
 				end
 				if neighbors[7] ~= nil and neighbors[4] ~= nil and neighbors[6] ~=nil then
-					if neighbors[7].contents.solid and neighbors[4].contents.soilid and testCell == neighbors[6] then --SW corner
+					if neighbors[7].contents.solid and neighbors[4].contents.solid and testCell == neighbors[6] then --SW corner
 						newX, newY = oldX, oldY
 					end
 				end
 				if neighbors[2] ~= nil and neighbors[4] ~= nil and neighbors[1] ~=nil then
-					if neighbors[2].contents.solid and neighbors[4].contents.soilid and testCell == neighbors[1] then --NW corner
+					if neighbors[2].contents.solid and neighbors[4].contents.solid and testCell == neighbors[1] then --NW corner
 						newX, newY = oldX, oldY
 					end
 				end
 				if neighbors[2] ~= nil and neighbors[5] ~= nil and neighbors[3] ~=nil then
-					if neighbors[2].contents.solid and neighbors[5].contents.soilid and testCell == neighbors[3] then --NE corner
+					if neighbors[2].contents.solid and neighbors[5].contents.solid and testCell == neighbors[3] then --NE corner
 						newX, newY = oldX, oldY
 					end
 				end

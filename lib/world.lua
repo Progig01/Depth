@@ -3,6 +3,76 @@ local tile = require('lib/tile')
 --Create our module
 local m = {}
 
+	m.cellMeta = {}
+	function m.cellMeta:getScreenPos() --gets the current screen position of the cell for drawing and other stuff
+		local world = self.parent.parent
+		local grid = self.parent 
+		local gridSizeInPixels = world.tileScale * world.gridScale
+
+		local drawX = (gridSizeInPixels * (grid.x-1)) + (world.tileScale * (self.x-1))
+		local drawY = (gridSizeInPixels * (grid.y-1)) + (world.tileScale * (self.y-1))
+
+		return drawX, drawY
+	end
+
+	function m.cellMeta:traverse(direction) --Returns the neighboring cell in the given direction
+		local x,y = self:getScreenPos()
+		local ts = self.parent.parent.tileScale
+
+		if direction=="n" 	then return self.parent.parent:getCellAt(x+00, y-ts) end --North
+		if direction=="ne" 	then return self.parent.parent:getCellAt(x+ts, y-ts) end --Northeast
+		if direction=="e" 	then return self.parent.parent:getCellAt(x+ts, y+00) end --East
+		if direction=="se" 	then return self.parent.parent:getCellAt(x+ts, y+ts) end --Southeast
+		if direction=="s" 	then return self.parent.parent:getCellAt(x+00, y+ts) end --South
+		if direction=="sw" 	then return self.parent.parent:getCellAt(x-ts, y+ts) end --Southwest
+		if direction=="w" 	then return self.parent.parent:getCellAt(x-ts, y+00) end --West
+		if direction=="nw" 	then return self.parent.parent:getCellAt(x-ts, y-ts) end --Northwest
+		return nil
+	end
+
+	function m.cellMeta:getNeighbors()
+		local neighbors = {}
+
+		neighbors[1]=self:traverse("nw")
+		neighbors[2]=self:traverse("n")
+		neighbors[3]=self:traverse("ne")
+		neighbors[4]=self:traverse("w")
+		neighbors[5]=self:traverse("e")
+		neighbors[6]=self:traverse("sw")
+		neighbors[7]=self:traverse("s")
+		neighbors[8]=self:traverse("se")
+
+		return neighbors
+	end
+
+	function m.cellMeta:render() --Render the cells contents
+		local spriteCache = self.parent.parent.spriteCache
+		local dX,dY = self:getScreenPos()
+
+		--Check if the cell has a tile, and if the tile has a sprite
+		if self.contents ~= nil and self.contents.hasSprite then
+			if spriteCache[self.contents.spritePath] == nil then --then check if the sprite is already stored in the world spriteCache
+				spriteCache[self.contents.spritePath] = love.graphics.newImage(self.contents.spritePath) --if not, cache it
+			end
+
+			local r,g,b,a = love.graphics.getColor()
+			love.graphics.setColor(1,1,1,1)
+			love.graphics.draw(spriteCache[self.contents.spritePath], dX, dY)				
+			love.graphics.setColor(r,g,b,a)
+		end
+	end
+
+	function m.cellMeta:debugRender() --Renders an outline of a cell to the screen
+		local dX, dY = self:getScreenPos()
+		local tileScale = self.parent.parent.tileScale
+		local r,g,b,a = love.graphics.getColor()
+
+		love.graphics.setColor(128,128,128,128)
+		if self.debugHighlight then love.graphics.setColor(1, 0, 0, 1) end
+		love.graphics.rectangle("line", dX, dY, tileScale,tileScale)
+		love.graphics.setColor(r, g, b, a)
+	end
+
 	function m.newCell(x, y, parent)
 		--Create a table to be our cell
 		local cell = {
@@ -14,78 +84,37 @@ local m = {}
 			parent = parent
 		}
 
-
-		--FUNCTIONS
-		function cell:getScreenPos() --gets the current screen position of the cell for drawing and other stuff
-			local world = self.parent.parent
-			local grid = self.parent 
-			local gridSizeInPixels = world.tileScale * world.gridScale
-
-			local drawX = (gridSizeInPixels * (grid.x-1)) + (world.tileScale * (self.x-1))
-			local drawY = (gridSizeInPixels * (grid.y-1)) + (world.tileScale * (self.y-1))
-
-			return drawX, drawY
-		end
-
-		function cell:traverse(direction) --Returns the neighboring cell in the given direction
-			local x,y = self:getScreenPos()
-			local ts = self.parent.parent.tileScale
-
-			if direction=="n" 	then return self.parent.parent:getCellAt(x+00, y-ts) end --North
-			if direction=="ne" 	then return self.parent.parent:getCellAt(x+ts, y-ts) end --Northeast
-			if direction=="e" 	then return self.parent.parent:getCellAt(x+ts, y+00) end --East
-			if direction=="se" 	then return self.parent.parent:getCellAt(x+ts, y+ts) end --Southeast
-			if direction=="s" 	then return self.parent.parent:getCellAt(x+00, y+ts) end --South
-			if direction=="sw" 	then return self.parent.parent:getCellAt(x-ts, y+ts) end --Southwest
-			if direction=="w" 	then return self.parent.parent:getCellAt(x-ts, y+00) end --West
-			if direction=="nw" 	then return self.parent.parent:getCellAt(x-ts, y-ts) end --Northwest
-			return nil
-		end
-
-		function cell:getNeighbors()
-			local neighbors = {}
-				neighbors[1]=cell:traverse("nw")
-				neighbors[2]=cell:traverse("n")
-				neighbors[3]=cell:traverse("ne")
-				neighbors[4]=cell:traverse("w")
-				neighbors[5]=cell:traverse("e")
-				neighbors[6]=cell:traverse("sw")
-				neighbors[7]=cell:traverse("s")
-				neighbors[8]=cell:traverse("se")
-
-			return neighbors
-		end
-
-		function cell:render() --Render the cells contents
-			local spriteCache = self.parent.parent.spriteCache
-			local dX,dY = self:getScreenPos()
-
-			--Check if the cell has a tile, and if the tile has a sprite
-			if self.contents ~= nil and self.contents.hasSprite then
-				if spriteCache[self.contents.spritePath] == nil then --then check if the sprite is already stored in the world spriteCache
-					spriteCache[self.contents.spritePath] = love.graphics.newImage(self.contents.spritePath) --if not, cache it
-				end
-
-				local r,g,b,a = love.graphics.getColor()
-				love.graphics.setColor(1,1,1,1)
-				love.graphics.draw(spriteCache[self.contents.spritePath], dX, dY)
-				love.graphics.setColor(r,g,b,a)
-			end
-		end
-
-		function cell:debugRender() --Renders an outline of a cell to the screen
-			local dX, dY = self:getScreenPos()
-			local tileScale = self.parent.parent.tileScale
-			local r,g,b,a = love.graphics.getColor()
-			love.graphics.setColor(128,128,128,128)
-			if self.debugHighlight then love.graphics.setColor(1, 0, 0, 1) end
-			love.graphics.rectangle("line", dX, dY, tileScale,tileScale)
-			love.graphics.setColor(r, g, b, a)
-		end
-
-		--Return our cell
+		--Attach meta and return our cell
+		setmetatable(cell, {__index = m.cellMeta})
 		return cell
 	end
+
+	m.gridMeta = {} --Metatable to hold functions used by all grid objects
+	function m.gridMeta:generate() --Populate the empty cells with air (TODO: Real world gen, dumbass)
+		local tileNames = {"tile_air", "tile_dirt"}
+		for i=1, #self.cells do
+			for k,v in pairs(self.cells[i]) do
+				v.contents = tile.createTile(tileNames[math.random(#tileNames)])
+			end
+		end
+	end
+
+	function m.gridMeta:renderCells() --Render the contents of all the cells in the grid
+		for i=1, #self.cells do
+			for k,v in pairs(self.cells[i]) do
+				if v.render ~= nil then v:render() end
+			end
+		end
+	end
+
+	function m.gridMeta:debugRender() --Render outlines of all the cells in the grid
+		for i=1, #self.cells do
+			for k,v in pairs(self.cells[i]) do
+				if v.debugRender ~= nil then v:debugRender() end
+			end
+		end
+	end
+
 
 	function m.newGrid(gX, gY, parent)
 		--Create a table to be our grid
@@ -105,33 +134,9 @@ local m = {}
 			end
 		end
 
-		--FUNCTIONS
-		function grid:generate() --Generates the cells within the grid (TODO: actual fuckin worldgen, dweeb)
-			local tileNames = {"tile_air", "tile_dirt"}
-			for i=1, #self.cells do
-				for k,v in pairs(self.cells[i]) do
-					v.contents = tile.createTile(tileNames[math.random(#tileNames)])
-				end
-			end
-		end
+		--Assign meta and return our grid
+		setmetatable(grid, {__index = m.gridMeta})
 
-		function grid:renderCells() --Renders the contents of all the cells in a grid
-			for i=1, #self.cells do
-				for k,v in pairs(self.cells[i]) do
-					if v.render ~= nil then v:render() end
-				end
-			end
-		end
-
-		function grid:debugRender() --Renders an outline of all the cells in a grid
-			for i=1, #self.cells do
-				for k,v in pairs(self.cells[i]) do
-					if v.debugRender ~= nil then v:debugRender() end
-				end
-			end
-		end
-
-		--Return our grid
 		return grid
 	end
 
@@ -184,7 +189,7 @@ local m = {}
 
 		function world:renderCells() --Renders all the cells in all the grids in the world (for now)
 			for i=1, #self.grids do
-				for k,v in pairs(self.grids[i]) do
+				for _,v in pairs(self.grids[i]) do
 					if v.renderCells ~= nil then v:renderCells() end
 				end
 			end
@@ -192,13 +197,14 @@ local m = {}
 
 		function world:debugRender() --Renders an outline of all cells in all grids in the world
 			for i=1, #self.grids do
-				for k,v in pairs(self.grids[i]) do
+				for _,v in pairs(self.grids[i]) do
 					if v.debugRender ~= nil then v:debugRender() end
 				end
 			end
 		end
 
-		--Return our world
+		--Assign meta and return our world
+		--setmetatable(world, m.gridMeta)
 		return world
 	end
 
