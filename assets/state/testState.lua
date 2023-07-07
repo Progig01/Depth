@@ -2,7 +2,7 @@
 local s = {}
 
 	function s:update(dt)
-		local speed = 3
+		local speed = 80
 		local entity = self.parent.controlEntity
 		local controller = self.parent.mapping.vButtons
 		local cEnt = self.parent.controlEntity
@@ -26,8 +26,8 @@ local s = {}
 				local oldCell = entity.world:getCellAt(oldX, oldY)
 
 				--Figure out where we should be based on speed and input
-				local newX = t.x + ((xVec/len)*speed)
-				local newY = t.y + ((yVec/len)*speed)
+				local newX = t.x + (((xVec/len)*speed)*dt)
+				local newY = t.y + (((yVec/len)*speed)*dt)
 				--print(newX, newY)
 
 				--Make sure the new position isn't outside the bounds of the world

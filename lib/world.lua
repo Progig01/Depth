@@ -1,5 +1,6 @@
 --Import required modules
 local tile = require('lib/tile')
+local wg = require('lib/worldgen')
 --Create our module
 local m = {}
 
@@ -59,6 +60,22 @@ local m = {}
 			love.graphics.setColor(1,1,1,1)
 			love.graphics.draw(spriteCache[self.contents.spritePath], dX, dY)				
 			love.graphics.setColor(r,g,b,a)
+		elseif self.contents ~= nil and self.contents.isMaterial then
+			if self.matSprite == nil then 
+				local sample = love.image.newImageData(self.parent.parent.tileScale, self.parent.parent.tileScale)
+				for x=0, self.parent.parent.tileScale-1 do
+					for y=0, self.parent.parent.tileScale-1 do
+						local r,g,b = sampleMaterial(self.contents.materialName, dX+x, dY+y)
+						sample:setPixel(x,y,r,g,b,1)
+					end
+				end
+				self.matSprite = love.graphics.newImage(sample)
+			end
+
+			local r,g,b,a = love.graphics.getColor()
+			love.graphics.setColor(1,1,1,1)
+			love.graphics.draw(self.matSprite, dX, dY)
+			love.graphics.setColor(r, g, b, a)
 		end
 	end
 
@@ -91,7 +108,7 @@ local m = {}
 
 	m.gridMeta = {} --Metatable to hold functions used by all grid objects
 	function m.gridMeta:generate() --Populate the empty cells with air (TODO: Real world gen, dumbass)
-		local tileNames = {"tile_air", "tile_dirt"}
+		local tileNames = {"tile_air", "tile_grass"}
 		for i=1, #self.cells do
 			for k,v in pairs(self.cells[i]) do
 				v.contents = tile.createTile(tileNames[math.random(#tileNames)])
