@@ -6,14 +6,6 @@ function love.load()
 	dBug.load()
 end
 
-function love.keypressed(key, scancode, isrepeat)
-	dBug.keypressed(key, scancode, isrepeat)
-end
-
-function love.keyreleased(key, scancode)
-	dBug.keyreleased(key, scancode)
-end
-
 function love.update(dt)
 	dBug.update(dt)
 end

@@ -2,12 +2,12 @@
 local d = {}
 
 	d.transform = { --Contains an entities position, rotation, scale, and related functions. No requirements
-		x=0, y=0, r=0, s=1, requirements={}, parentEntity = nil
+		x=0, y=0, z=1, r=0, s=1, requirements={}, parentEntity = nil
 	}
 		--Getter/Setter functions
-		function d.transform:getPosition() return self.x, self.y  end 			--Position getter
+		function d.transform:getPosition() return self.x, self.y, self.d  end 			--Position getter
 		function d.transform:getScale() return self.sX, self.sY end 			--Scale getter
-		function d.transform:setPosition(x, y) self.x, self.y = x, y 	 end 	--Position setter
+		function d.transform:setPosition(x, y, z) self.x=x self.y=y self.z=z or self.z	 end 	--Position setter
 		function d.transform:setScale(s) self.s = s end 	--Scale setter
 		--Actual functions
 		function d.transform:getHeadingVector()	--Get the heading vector from the rotation angle

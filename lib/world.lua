@@ -16,6 +16,23 @@ local m = {}
 		return drawX, drawY
 	end
 
+	function m.cellMeta:isWithin(x,y,z) --Checks if a given x,y,z position is within this cell
+		local world = self.parent.parent
+
+		local minX, minY = self:getScreenPos()
+		local maxX, maxY = minX+world.tileScale, minY+world.tileScale
+		local minZ, maxZ = 1, world.worldDepth
+
+		if x >= minX and x <= maxX then
+			if y >= minY and y <= maxY then
+				if z >= minZ and z <= maxZ then
+					return true
+				end
+			end
+		end
+		return false
+	end
+
 	function m.cellMeta:traverse(direction) --Returns the neighboring cell in the given direction
 		local x,y = self:getScreenPos()
 		local ts = self.parent.parent.tileScale
@@ -46,37 +63,52 @@ local m = {}
 		return neighbors
 	end
 
-	function m.cellMeta:render() --Render the cells contents
+	function m.cellMeta:render(solidTransparency) --Render the cells contents
+		--Get our local variables set up
 		local spriteCache = self.parent.parent.spriteCache
 		local dX,dY = self:getScreenPos()
+		local solidTransparency = solidTransparency or false
+		local drawable = nil
 
-		--Check if the cell has a tile, and if the tile has a sprite
+		--Handle tiles with normal sprites
 		if self.contents ~= nil and self.contents.hasSprite then
 			if spriteCache[self.contents.spritePath] == nil then --then check if the sprite is already stored in the world spriteCache
 				spriteCache[self.contents.spritePath] = love.graphics.newImage(self.contents.spritePath) --if not, cache it
 			end
+			drawable = spriteCache[self.contents.spritePath] --Set it as our thing to draw
+		end
 
-			local r,g,b,a = love.graphics.getColor()
-			love.graphics.setColor(1,1,1,1)
-			love.graphics.draw(spriteCache[self.contents.spritePath], dX, dY)				
-			love.graphics.setColor(r,g,b,a)
-		elseif self.contents ~= nil and self.contents.isMaterial then
-			if self.matSprite == nil then 
-				local sample = love.image.newImageData(self.parent.parent.tileScale, self.parent.parent.tileScale)
+		--Handle tiles with procedural materials
+		if self.contents ~= nil and self.contents.isMaterial then
+			if self.matSprite == nil then --See if we've already stored its sampled texture
+				local sample = love.image.newImageData(self.parent.parent.tileScale, self.parent.parent.tileScale) --If not, do so
 				for x=0, self.parent.parent.tileScale-1 do
 					for y=0, self.parent.parent.tileScale-1 do
 						local r,g,b = sampleMaterial(self.contents.materialName, dX+x, dY+y)
 						sample:setPixel(x,y,r,g,b,1)
 					end
 				end
-				self.matSprite = love.graphics.newImage(sample)
+				self.matSprite = love.graphics.newImage(sample) --And store the sample
 			end
-
-			local r,g,b,a = love.graphics.getColor()
-			love.graphics.setColor(1,1,1,1)
-			love.graphics.draw(self.matSprite, dX, dY)
-			love.graphics.setColor(r, g, b, a)
+			drawable = self.matSprite --Set it as our thing to draw
 		end
+
+		--Handle solid-transparency cases
+		if drawable ~= nil then
+			if solidTransparency then
+				if not self.contents.solid then
+					local r,g,b,a = love.graphics.getColor()
+					love.graphics.setColor(1,1,1,1)
+					love.graphics.draw(drawable, dX, dY) --Draw it with solid-transparency, solid-transparent
+					love.graphics.setColor(r,g,b,a)
+				else
+					love.graphics.draw(drawable, dX, dY) --Draw it with solid-transparency, solid
+				end
+			else
+				love.graphics.draw(drawable, dX, dY) --Draw it without solid-transparency
+			end
+		end
+
 	end
 
 	function m.cellMeta:debugRender() --Renders an outline of a cell to the screen
@@ -111,15 +143,16 @@ local m = {}
 		local tileNames = {"tile_air", "tile_grass"}
 		for i=1, #self.cells do
 			for k,v in pairs(self.cells[i]) do
-				v.contents = tile.createTile(tileNames[math.random(#tileNames)])
+				self.isGenerated = true
+				v.contents = tile.createTile(tileNames[math.random(#tileNames)], self)
 			end
 		end
 	end
 
-	function m.gridMeta:renderCells() --Render the contents of all the cells in the grid
+	function m.gridMeta:renderCells(solidTransparency) --Render the contents of all the cells in the grid
 		for i=1, #self.cells do
 			for k,v in pairs(self.cells[i]) do
-				if v.render ~= nil then v:render() end
+				if v.render ~= nil then v:render(solidTransparency) end
 			end
 		end
 	end
@@ -133,12 +166,14 @@ local m = {}
 	end
 
 
-	function m.newGrid(gX, gY, parent)
+	function m.newGrid(gX, gY, gZ, parent)
 		--Create a table to be our grid
 		local grid = {
 			id = 0,
 			x = gX,
 			y = gY,
+			z = gZ,
+			isGenerated = false,
 			cells = {},
 			parent = parent
 		}
@@ -157,13 +192,14 @@ local m = {}
 		return grid
 	end
 
-	function m.newWorld(wW, wH)
+	function m.newWorld(wW, wH, wD)
 		--Create a table to be our world
 		local world = {
 			id = 0,
 			name = "world",
 			worldWidth = wW or 1,
 			worldHeight = wH or 1,
+			worldDepth = wD or 8,
 			gridScale = 16,
 			tileScale = 32,
 			grids = {},
@@ -174,7 +210,10 @@ local m = {}
 		for gX=1, world.worldWidth do
 			world.grids[gX] = {}
 			for gY=1, world.worldHeight do
-				world.grids[gX][gY] = m.newGrid(gX, gY, world)
+				world.grids[gX][gY] = {}
+				for gZ = 1, world.worldDepth do
+					world.grids[gX][gY][gZ] = m.newGrid(gX, gY, gZ, world)
+				end
 			end
 		end
 
@@ -182,12 +221,15 @@ local m = {}
 		function world:getBounds()
 			local x = (world.tileScale * world.gridScale) * self.worldWidth
 			local y = (world.tileScale * world.gridScale) * self.worldWidth
-			return x, y
+			local z = world.worldDepth
+			print(x, y, z)
+			return x, y, z
 		end
 
-		function world:getCellAt(x,y) --Takes a world X Y position and returns the grid and cell at that location
-			local maxX, maxY = self:getBounds()
-			if x >= 0 and x < maxX and y >= 0 and y < maxY then
+		function world:getCellAt(x,y,z) --Takes a world X Y position and returns the grid and cell at that location
+			local maxX, maxY, maxZ = self:getBounds()
+			local x,y,z = x,y,z or 1
+			if x >= 0 and x < maxX and y >= 0 and y < maxY and z >= 1 and z < maxZ then
 				local gridSizeInPixels = self.gridScale * self.tileScale
 
 				local gridX = math.floor(x/gridSizeInPixels)
@@ -196,7 +238,7 @@ local m = {}
 				local cellY = math.floor((y-(gridSizeInPixels*gridY))/self.tileScale)+1
 				gridX, gridY = gridX+1, gridY+1
 
-				local rGrid = self.grids[gridX][gridY]
+				local rGrid = self.grids[gridX][gridY][z]
 				local rCell = rGrid.cells[cellX][cellY]
 
 				return rCell
@@ -205,17 +247,47 @@ local m = {}
 		end
 
 		function world:renderCells() --Renders all the cells in all the grids in the world (for now)
-			for i=1, #self.grids do
-				for _,v in pairs(self.grids[i]) do
-					if v.renderCells ~= nil then v:renderCells() end
+			for x=1, #self.grids do
+				for y=1, #self.grids[1] do
+					for _,v in pairs(self.grids[x][y]) do
+						if v.renderCells ~= nil then v:renderCells() end
+					end
 				end
 			end
 		end
 
+		function world:newRenderCells(viewDepth) --Renders cells less shittily
+			local vD = viewDepth or 1 --The Z depth of the tiles that should be rendered as foreground
+
+			local r,g,b,a = love.graphics.getColor() --store the old draw color
+
+
+			--Set the color for the cells one under view depth (floor)
+			love.graphics.setColor(1,1,1,1)
+			for x = 1, #self.grids do
+				for y = 1, #self.grids[x] do
+					local v = self.grids[x][y][vD+1]
+					if v ~= nil and v.renderCells ~= nil then v:renderCells(false) end
+				end
+			end
+			--Set the color for the cells at view depth (walls)
+			love.graphics.setColor(0.18,0.18,0.18,1)
+			for x = 1, #self.grids do
+				for y = 1, #self.grids[x] do
+					local v = self.grids[x][y][vD]
+					if v ~= nil and v.renderCells ~= nil then v:renderCells(true) end
+				end
+			end
+
+			love.graphics.setColor(r, g, b, a) --return to old color
+		end
+
 		function world:debugRender() --Renders an outline of all cells in all grids in the world
-			for i=1, #self.grids do
-				for _,v in pairs(self.grids[i]) do
-					if v.debugRender ~= nil then v:debugRender() end
+			for x=1, #self.grids do
+				for y=1, #self.grids[x] do
+					for _,v in pairs(self.grids[x][y]) do
+						if v.debugRender ~= nil then v:debugRender() end
+					end
 				end
 			end
 		end

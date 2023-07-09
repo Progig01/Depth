@@ -17,6 +17,8 @@ local d = {}
 
 		},
 
+		scrollValue = {x=0, y=0},
+
 		vButtons = {
 			up = false,
 			down = false,

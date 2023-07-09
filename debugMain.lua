@@ -4,6 +4,7 @@ local world = require('lib/world')
 local entity = require('lib/entity')
 local input = require('lib/input')
 local gamera = require('lib/third_party/gamera')
+local tile = require("lib/tile")
 
 --Module time
 local m = {}
@@ -13,18 +14,21 @@ function m.load()
 	math.randomseed(111211811)
 	--math.randomseed(os.time())
 
-	myWorld = world.newWorld(4,4)
-	myWorld.grids[1][1]:generate()
-	testCell = myWorld.grids[1][1].cells[4][4]
+	myWorld = world.newWorld(4,4,4)
+	myWorld.grids[1][1][1]:generate()
+	myWorld.grids[1][1][2]:generate()
+	myWorld.grids[1][1][3]:generate()
+	myWorld.grids[1][1][4]:generate()
+	testCell = myWorld.grids[1][1][3].cells[4][4]
+	testCell.contents = tile.createTile("tile_ladderUp", testCell)
 
 	myEntity = entity.createEntity("playerEntity", myWorld)
-	myEntity.transform:setPosition(100,100)
+	myEntity.transform:setPosition(100,100, 4)
 	myEntity.transform:setScale(4)
 
-	myHandler = input.newInputHandler()
-	myHandler:setActiveMapping("test_mapping")
-	myHandler:setActiveState("assets/state/testState")
-	myHandler.controlEntity = myEntity
+	input:setActiveMapping("test_mapping")
+	input:setActiveState("assets/state/testState")
+	input.controlEntity = myEntity
 
 	mainCamera = gamera.new(0,0,2048,2048)
 	mainCamera:setScale(3.0)
@@ -32,23 +36,17 @@ function m.load()
 	--require('lib/worldgen')
 end
 
-function m.keypressed(key, scanecode, isrepeat)
-	myHandler:keyPressed(key)
-end
-
-function m.keyreleased(key, scancode)
-	myHandler:keyReleased(key)
-end
-
 function m.update(dt)
-	myHandler:update(dt)
+	input:update(dt)
 	mainCamera:setPosition(myEntity.transform.x, myEntity.transform.y)
-	print("FPS: " .. 1/dt .. "  TICK: " .. dt*1000 .. "ms")
+	mainCamera:setScale(1.0*input.mapping.scrollValue.y)
+	--print(input.mapping.vButtons.keyboard)
+	--print("FPS: " .. 1/dt .. "  TICK: " .. dt*1000 .. "ms")
 end
 
 function m.draw()
 	--myWorld:debugRender()
-    myWorld:renderCells()
+    myWorld:newRenderCells(myEntity.transform.z)
     myEntity.renderer:debugRender()
 end
 

@@ -20,10 +20,10 @@ local s = {}
 				local scale = t.s
 
 				--Store our initial position before the update
-				local oldX, oldY = t.x, t.y
+				local oldX, oldY, oldZ = t.x, t.y, t.z
 
 				--Get the cell our initial position is in
-				local oldCell = entity.world:getCellAt(oldX, oldY)
+				local oldCell = entity.world:getCellAt(oldX, oldY, oldZ)
 
 				--Figure out where we should be based on speed and input
 				local newX = t.x + (((xVec/len)*speed)*dt)
@@ -38,15 +38,15 @@ local s = {}
 				if newY > maxY - scale then newY = maxY - scale end
 
 				--Make sure the new position doesn't place us inside a solid block
-				local testCell = entity.world:getCellAt(newX, newY) --Make sure we have a fallback
+				local testCell = entity.world:getCellAt(newX, newY, oldZ) --Make sure we have a fallback
 				local positive = true --If the movement was in a positive direction or not
 
 				--This block is flawed as fuck, but I haven't the attention span to fix it right now ------------
 				if xVec > 0 or yVec > 0 then
-					testCell = entity.world:getCellAt(newX+scale, newY+scale)
+					testCell = entity.world:getCellAt(newX+scale, newY+scale, oldZ)
 					positive = true
 				elseif xVec < 0 or yVec < 0 then
-					testCell = entity.world:getCellAt(newX-scale, newY-scale)
+					testCell = entity.world:getCellAt(newX-scale, newY-scale, oldZ)
 					positive = false
 				end
 				--End scuffed shit ------------------------------------------------------------------------------
