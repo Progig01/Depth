@@ -14,16 +14,16 @@ function m.load()
 	math.randomseed(111211811)
 	--math.randomseed(os.time())
 
-	myWorld = world.newWorld(4,4,4)
-	myWorld.grids[1][1][1]:generate()
+	myWorld = world.newWorld(2,2,16)
 	myWorld.grids[1][1][2]:generate()
-	myWorld.grids[1][1][3]:generate()
-	myWorld.grids[1][1][4]:generate()
+	myWorld.grids[1][2][2]:generate()
+	myWorld.grids[2][1][2]:generate()
+	myWorld.grids[2][2][2]:generate()
 	testCell = myWorld.grids[1][1][3].cells[4][4]
 	testCell.contents = tile.createTile("tile_ladderUp", testCell)
 
 	myEntity = entity.createEntity("playerEntity", myWorld)
-	myEntity.transform:setPosition(100,100, 4)
+	myEntity.transform:setPosition(100,100, 1)
 	myEntity.transform:setScale(4)
 
 	input:setActiveMapping("test_mapping")
@@ -40,13 +40,12 @@ function m.update(dt)
 	input:update(dt)
 	mainCamera:setPosition(myEntity.transform.x, myEntity.transform.y)
 	mainCamera:setScale(1.0*input.mapping.scrollValue.y)
-	--print(input.mapping.vButtons.keyboard)
 	--print("FPS: " .. 1/dt .. "  TICK: " .. dt*1000 .. "ms")
 end
 
 function m.draw()
 	--myWorld:debugRender()
-    myWorld:newRenderCells(myEntity.transform.z)
+    myWorld:renderCells(myEntity.transform, mainCamera)
     myEntity.renderer:debugRender()
 end
 

@@ -200,7 +200,7 @@ local m = {}
 			worldWidth = wW or 1,
 			worldHeight = wH or 1,
 			worldDepth = wD or 8,
-			gridScale = 16,
+			gridScale = 32,
 			tileScale = 32,
 			grids = {},
 			spriteCache = {}
@@ -222,7 +222,6 @@ local m = {}
 			local x = (world.tileScale * world.gridScale) * self.worldWidth
 			local y = (world.tileScale * world.gridScale) * self.worldWidth
 			local z = world.worldDepth
-			print(x, y, z)
 			return x, y, z
 		end
 
@@ -246,34 +245,32 @@ local m = {}
 			return nil
 		end
 
-		function world:renderCells() --Renders all the cells in all the grids in the world (for now)
-			for x=1, #self.grids do
-				for y=1, #self.grids[1] do
-					for _,v in pairs(self.grids[x][y]) do
-						if v.renderCells ~= nil then v:renderCells() end
-					end
-				end
-			end
-		end
+		function world:renderCells(referencePoint, camera) --Renders cells less shittily
+			local vD = referencePoint.z or 1 --The Z depth of the tiles that should be rendered as foreground
 
-		function world:newRenderCells(viewDepth) --Renders cells less shittily
-			local vD = viewDepth or 1 --The Z depth of the tiles that should be rendered as foreground
+			--Figure out which cells we should actually be drawing
+			local cx1, cy1, _,_,_,_, cx4, cy4 = camera:getVisibleCorners() --Get the visible corners
+			local tlGrid = self:getCellAt(cx1, cy1).parent --Topleft most visible grid
+			local brGrid = self:getCellAt(cx4, cy4).parent --Bottomright most visible grid
 
-			local r,g,b,a = love.graphics.getColor() --store the old draw color
+			--Set the start and end positions for our for loop
+			local startX, startY = tlGrid.x, tlGrid.y
+			local endX, endY = brGrid.x, brGrid.y
 
-
+			--Store the old draw color
+			local r,g,b,a = love.graphics.getColor()
 			--Set the color for the cells one under view depth (floor)
 			love.graphics.setColor(1,1,1,1)
-			for x = 1, #self.grids do
-				for y = 1, #self.grids[x] do
+			for x = startX, endX do
+				for y = startY, endY do
 					local v = self.grids[x][y][vD+1]
 					if v ~= nil and v.renderCells ~= nil then v:renderCells(false) end
 				end
 			end
 			--Set the color for the cells at view depth (walls)
 			love.graphics.setColor(0.18,0.18,0.18,1)
-			for x = 1, #self.grids do
-				for y = 1, #self.grids[x] do
+			for x = startX, endX do
+				for y = startY, endY do
 					local v = self.grids[x][y][vD]
 					if v ~= nil and v.renderCells ~= nil then v:renderCells(true) end
 				end
