@@ -10,17 +10,18 @@ local tile = require("lib/tile")
 local m = {}
 
 function m.load()
-	love.graphics.setDefaultFilter( 'nearest', 'nearest' )
-	math.randomseed(111211811)
-	--math.randomseed(os.time())
-
 	myWorld = world.newWorld(2,2,16)
-	myWorld.grids[1][1][2]:generate()
-	myWorld.grids[1][2][2]:generate()
-	myWorld.grids[2][1][2]:generate()
-	myWorld.grids[2][2][2]:generate()
-	testCell = myWorld.grids[1][1][3].cells[4][4]
-	testCell.contents = tile.createTile("tile_ladderUp", testCell)
+	myWorld.seed = 111211811
+	for x=1, #myWorld.grids do
+		for y=1, #myWorld.grids[x] do
+			for z=1, #myWorld.grids[x][y] do
+				myWorld.grids[x][y][z]:generate()
+			end
+		end
+	end
+
+	testCell = myWorld.grids[1][1][1].cells[4][4]
+	testCell.debugHighlight = true
 
 	myEntity = entity.createEntity("playerEntity", myWorld)
 	myEntity.transform:setPosition(100,100, 1)
@@ -32,8 +33,6 @@ function m.load()
 
 	mainCamera = gamera.new(0,0,2048,2048)
 	mainCamera:setScale(3.0)
-
-	--require('lib/worldgen')
 end
 
 function m.update(dt)
@@ -44,7 +43,7 @@ function m.update(dt)
 end
 
 function m.draw()
-	--myWorld:debugRender()
+	myWorld:debugRender(myEntity.transform, mainCamera)
     myWorld:renderCells(myEntity.transform, mainCamera)
     myEntity.renderer:debugRender()
 end

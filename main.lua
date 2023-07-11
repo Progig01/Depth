@@ -3,6 +3,8 @@ local dBug = require('debugMain')
 
 function love.load()
 	love.window.setVSync(0)
+	love.graphics.setDefaultFilter( 'nearest', 'nearest' )
+	math.randomseed(111211811)
 	dBug.load()
 end
 

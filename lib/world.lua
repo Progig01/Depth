@@ -1,6 +1,7 @@
 --Import required modules
 local tile = require('lib/tile')
 local wg = require('lib/worldgen')
+local utils = require('lib/utils')
 --Create our module
 local m = {}
 
@@ -48,19 +49,29 @@ local m = {}
 		return nil
 	end
 
+	function m.cellMeta:assignNeighbors()
+		if self.neighbors == nil then
+			self.neighbors = {}
+			self.neighbors[1]=self:traverse("nw")
+			self.neighbors[2]=self:traverse("n")
+			self.neighbors[3]=self:traverse("ne")
+			self.neighbors[4]=self:traverse("w")
+			self.neighbors[5]=self:traverse("e")
+			self.neighbors[6]=self:traverse("sw")
+			self.neighbors[7]=self:traverse("s")
+			self.neighbors[8]=self:traverse("se")
+			return true
+		else
+			return false
+		end
+	end
+
 	function m.cellMeta:getNeighbors()
-		local neighbors = {}
+		if self.neighbors == nil then
+			self:assignNeighbors()
+		end
 
-		neighbors[1]=self:traverse("nw")
-		neighbors[2]=self:traverse("n")
-		neighbors[3]=self:traverse("ne")
-		neighbors[4]=self:traverse("w")
-		neighbors[5]=self:traverse("e")
-		neighbors[6]=self:traverse("sw")
-		neighbors[7]=self:traverse("s")
-		neighbors[8]=self:traverse("se")
-
-		return neighbors
+		return self.neighbors
 	end
 
 	function m.cellMeta:render(solidTransparency) --Render the cells contents
@@ -133,6 +144,10 @@ local m = {}
 			parent = parent
 		}
 
+		--Generate a unique id for our cell, and add the reference to the world lookup table
+		cell.id = utils.newUUID(cell.parent.parent.seed * 100 * cell.x + cell.y, 'c')
+		cell.parent.parent.idReferences[cell.id] = cell
+
 		--Attach meta and return our cell
 		setmetatable(cell, {__index = m.cellMeta})
 		return cell
@@ -178,6 +193,10 @@ local m = {}
 			parent = parent
 		}
 
+		--Generate a unique id for our grids, and add the reference to the world lookup table
+		grid.id = utils.newUUID(grid.parent.seed * grid.x + grid.y, 'g')
+		grid.parent.idReferences[grid.id] = grid
+
 		--Populate our grid with cells
 		for cX=1, grid.parent.gridScale do
 			grid.cells[cX] = {}
@@ -192,11 +211,12 @@ local m = {}
 		return grid
 	end
 
-	function m.newWorld(wW, wH, wD)
+	function m.newWorld(wW, wH, wD, seed)
 		--Create a table to be our world
 		local world = {
 			id = 0,
 			name = "world",
+			seed = seed or 0,
 			worldWidth = wW or 1,
 			worldHeight = wH or 1,
 			worldDepth = wD or 8,
@@ -205,6 +225,13 @@ local m = {}
 			grids = {},
 			spriteCache = {}
 		}
+
+		--Make a table to have references to every object in the grid via ID
+		world.idReferences = {}
+
+		--Generate a unique ID for our world
+		world.id = utils.newUUID(world.seed, 'w')
+		world[world.id] = world --Add it to the world references table
 
 		--Populate our world with grids
 		for gX=1, world.worldWidth do
@@ -218,6 +245,14 @@ local m = {}
 		end
 
 		--FUNCTIONS
+		function world:getById(id)
+			if self.idReferences[id] ~= nil then
+				return self.idReferences[id]
+			else
+				return 'No object with this id'
+			end
+		end
+
 		function world:getBounds()
 			local x = (world.tileScale * world.gridScale) * self.worldWidth
 			local y = (world.tileScale * world.gridScale) * self.worldWidth
@@ -279,14 +314,24 @@ local m = {}
 			love.graphics.setColor(r, g, b, a) --return to old color
 		end
 
-		function world:debugRender() --Renders an outline of all cells in all grids in the world
-			for x=1, #self.grids do
-				for y=1, #self.grids[x] do
-					for _,v in pairs(self.grids[x][y]) do
-						if v.debugRender ~= nil then v:debugRender() end
-					end
+		function world:debugRender(referencePoint, camera) --Renders an outline of all cells in all grids in the world
+			--Figure out which cells we should actually be drawing
+			local cx1, cy1, _,_,_,_, cx4, cy4 = camera:getVisibleCorners() --Get the visible corners
+			local tlGrid = self:getCellAt(cx1, cy1).parent --Topleft most visible grid
+			local brGrid = self:getCellAt(cx4, cy4).parent --Bottomright most visible grid
+
+			--Set the start and end positions for our for loop
+			local startX, startY = tlGrid.x, tlGrid.y
+			local endX, endY = brGrid.x, brGrid.y
+
+			--Draw the grids we can see
+			for x = startX, endX do
+				for y = startY, endY do
+					local v = self.grids[x][y][referencePoint.z]
+					if v ~= nil and v.debugRender ~= nil then v:debugRender() end
 				end
 			end
+
 		end
 
 		--Assign meta and return our world
