@@ -2,12 +2,14 @@
 local s = {}
 
 	function s:update(dt)
-		local speed = 80
+		--Get some useful interfaces to things in the game
 		local entity = self.parent.controlEntity
+		local world = entity.world
 		local controller = self.parent.mapping.vButtons
-		local cEnt = self.parent.controlEntity
 
+		--Handle movement
 		if entity ~= nil and entity.transform ~= nil then
+			local speed = 80
 			local xVec, yVec = 0,0
 
 			if controller.up then yVec = -1 elseif controller.down then yVec = 1 end
@@ -83,8 +85,24 @@ local s = {}
 
 				--Update the position
 				t.x, t.y = newX, newY
-			end
+
+				--Is the player standing on anything? Should they fall?
+				local fallTestCell = entity.world:getCellAt(newX-scale, newY-scale, oldZ+1)
+				while fallTestCell ~= nil and fallTestCell.contents.solid ~= true do
+					t.z = t.z + 1
+					if fallTestCell ~= nil then
+						fallTestCell = entity.world:getCellAt(newX-scale, newY-scale, t.z+1)
+					else
+						return
+					end
+				end
+			end 
 		end
+
+		--Handle interaction
+
+
+
 	end
 
 --Return the state

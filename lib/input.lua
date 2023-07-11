@@ -12,6 +12,14 @@ local m = {}
 			controlEntity = nil
 		}
 
+		--Set a control entity to manage with a state and mapping
+		function handler:setControlEntity(entity)
+			self.controlEntity = entity
+		end
+
+		function handler:getControlEntity()
+			return self.controlEntity
+		end
 
 		--Set an input mapping as active so button presses can be filtered accordingly
 		function handler:setActiveMapping(mappingName)

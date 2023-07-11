@@ -10,41 +10,39 @@ local tile = require("lib/tile")
 local m = {}
 
 function m.load()
+	--Make a camera
+	mainCamera = gamera.new(0,0,2048,2048)
+	mainCamera:setScale(3.0)
+
+	--Make a world
 	myWorld = world.newWorld(2,2,16)
 	myWorld.seed = 111211811
-	for x=1, #myWorld.grids do
-		for y=1, #myWorld.grids[x] do
-			for z=1, #myWorld.grids[x][y] do
-				myWorld.grids[x][y][z]:generate()
-			end
-		end
-	end
+	myWorld:generate()
 
-	testCell = myWorld.grids[1][1][1].cells[4][4]
-	testCell.debugHighlight = true
-
+	--Make a player, attached to the world
 	myEntity = entity.createEntity("playerEntity", myWorld)
 	myEntity.transform:setPosition(100,100, 1)
 	myEntity.transform:setScale(4)
 
+	--Set the input manager to an appropriate mapping and state, attach the player as the control entit
 	input:setActiveMapping("test_mapping")
 	input:setActiveState("assets/state/testState")
-	input.controlEntity = myEntity
-
-	mainCamera = gamera.new(0,0,2048,2048)
-	mainCamera:setScale(3.0)
+	input:setControlEntity(myEntity)
 end
 
 function m.update(dt)
+	--Update the input handler
 	input:update(dt)
+
+	--Temporary testing garbage
 	mainCamera:setPosition(myEntity.transform.x, myEntity.transform.y)
 	mainCamera:setScale(1.0*input.mapping.scrollValue.y)
 	--print("FPS: " .. 1/dt .. "  TICK: " .. dt*1000 .. "ms")
 end
 
 function m.draw()
-	myWorld:debugRender(myEntity.transform, mainCamera)
-    myWorld:renderCells(myEntity.transform, mainCamera)
+	--Render the world
+    myWorld:renderCells(myEntity.transform, mainCamera, false)
     myEntity.renderer:debugRender()
 end
 

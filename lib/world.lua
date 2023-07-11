@@ -74,63 +74,69 @@ local m = {}
 		return self.neighbors
 	end
 
-	function m.cellMeta:render(solidTransparency) --Render the cells contents
+	function m.cellMeta:render(solidTransparency, debugRender) --Render the cells contents
 		--Get our local variables set up
 		local spriteCache = self.parent.parent.spriteCache
 		local dX,dY = self:getScreenPos()
 		local solidTransparency = solidTransparency or false
 		local drawable = nil
 
-		--Handle tiles with normal sprites
-		if self.contents ~= nil and self.contents.hasSprite then
-			if spriteCache[self.contents.spritePath] == nil then --then check if the sprite is already stored in the world spriteCache
-				spriteCache[self.contents.spritePath] = love.graphics.newImage(self.contents.spritePath) --if not, cache it
+		if not debugRender then --NORMAL RENDERING CASE
+			--Handle tiles with normal sprites
+			if self.contents ~= nil and self.contents.hasSprite then
+				if spriteCache[self.contents.spritePath] == nil then --then check if the sprite is already stored in the world spriteCache
+					spriteCache[self.contents.spritePath] = love.graphics.newImage(self.contents.spritePath) --if not, cache it
+				end
+				drawable = spriteCache[self.contents.spritePath] --Set it as our thing to draw
 			end
-			drawable = spriteCache[self.contents.spritePath] --Set it as our thing to draw
-		end
 
-		--Handle tiles with procedural materials
-		if self.contents ~= nil and self.contents.isMaterial then
-			if self.matSprite == nil then --See if we've already stored its sampled texture
-				local sample = love.image.newImageData(self.parent.parent.tileScale, self.parent.parent.tileScale) --If not, do so
-				for x=0, self.parent.parent.tileScale-1 do
-					for y=0, self.parent.parent.tileScale-1 do
-						local r,g,b = sampleMaterial(self.contents.materialName, dX+x, dY+y)
-						sample:setPixel(x,y,r,g,b,1)
+			--Handle tiles with procedural materials
+			if self.contents ~= nil and self.contents.isMaterial then
+				if self.matSprite == nil then --See if we've already stored its sampled texture
+					local sample = love.image.newImageData(self.parent.parent.tileScale, self.parent.parent.tileScale) --If not, do so
+					for x=0, self.parent.parent.tileScale-1 do
+						for y=0, self.parent.parent.tileScale-1 do
+							local r,g,b = sampleMaterial(self.contents.materialName, dX+x, dY+y)
+							sample:setPixel(x,y,r,g,b,1)
+						end
 					end
+					self.matSprite = love.graphics.newImage(sample) --And store the sample
 				end
-				self.matSprite = love.graphics.newImage(sample) --And store the sample
+				drawable = self.matSprite --Set it as our thing to draw
 			end
-			drawable = self.matSprite --Set it as our thing to draw
-		end
 
-		--Handle solid-transparency cases
-		if drawable ~= nil then
-			if solidTransparency then
-				if not self.contents.solid then
-					local r,g,b,a = love.graphics.getColor()
-					love.graphics.setColor(1,1,1,1)
-					love.graphics.draw(drawable, dX, dY) --Draw it with solid-transparency, solid-transparent
-					love.graphics.setColor(r,g,b,a)
+			--Handle solid-transparency cases
+			if drawable ~= nil then
+				if solidTransparency then
+					if not self.contents.solid then
+						local r,g,b,a = love.graphics.getColor()
+						love.graphics.setColor(1,1,1,1)
+						love.graphics.draw(drawable, dX, dY) --Draw it with solid-transparency, solid-transparent
+						love.graphics.setColor(r,g,b,a)
+					else
+						love.graphics.draw(drawable, dX, dY) --Draw it with solid-transparency, solid
+					end
 				else
-					love.graphics.draw(drawable, dX, dY) --Draw it with solid-transparency, solid
+					love.graphics.draw(drawable, dX, dY) --Draw it without solid-transparency
 				end
-			else
-				love.graphics.draw(drawable, dX, dY) --Draw it without solid-transparency
 			end
+		elseif debugRender then --DEBUG RENDER CASE
+			local tileScale = self.parent.parent.tileScale
+			local r,g,b,a = love.graphics.getColor()
+
+			love.graphics.setColor(128,128,128,128)
+			if self.debugHighlight then love.graphics.setColor(1, 0, 0, 1) end
+
+			if self.contents ~= nil and self.contents.solid then
+				love.graphics.rectangle("fill", dX, dY, tileScale, tileScale)
+			else
+				love.graphics.rectangle("line", dX, dY, tileScale,tileScale)
+			end
+
+
+			love.graphics.setColor(r, g, b, a)
 		end
 
-	end
-
-	function m.cellMeta:debugRender() --Renders an outline of a cell to the screen
-		local dX, dY = self:getScreenPos()
-		local tileScale = self.parent.parent.tileScale
-		local r,g,b,a = love.graphics.getColor()
-
-		love.graphics.setColor(128,128,128,128)
-		if self.debugHighlight then love.graphics.setColor(1, 0, 0, 1) end
-		love.graphics.rectangle("line", dX, dY, tileScale,tileScale)
-		love.graphics.setColor(r, g, b, a)
 	end
 
 	function m.newCell(x, y, parent)
@@ -164,22 +170,21 @@ local m = {}
 		end
 	end
 
-	function m.gridMeta:renderCells(solidTransparency) --Render the contents of all the cells in the grid
-		for i=1, #self.cells do
-			for k,v in pairs(self.cells[i]) do
-				if v.render ~= nil then v:render(solidTransparency) end
+	function m.gridMeta:renderCells(solidTransparency, debugRender) --Render the contents of all the cells in the grid
+		if not debugRender then --NORMAL RENDER CASE
+			for i=1, #self.cells do
+				for k,v in pairs(self.cells[i]) do
+					if v.render ~= nil then v:render(solidTransparency) end
+				end
+			end
+		elseif debugRender then --DEBUG RENDER CASE
+			for i=1, #self.cells do
+				for k,v in pairs(self.cells[i]) do
+					if v.render ~= nil then v:render(false, true) end
+				end
 			end
 		end
 	end
-
-	function m.gridMeta:debugRender() --Render outlines of all the cells in the grid
-		for i=1, #self.cells do
-			for k,v in pairs(self.cells[i]) do
-				if v.debugRender ~= nil then v:debugRender() end
-			end
-		end
-	end
-
 
 	function m.newGrid(gX, gY, gZ, parent)
 		--Create a table to be our grid
@@ -245,6 +250,18 @@ local m = {}
 		end
 
 		--FUNCTIONS
+		function world:generate() --Call the generate method for all grids in the world. TODO: generation range
+			for x=1, #self.grids do
+				for y=1, #self.grids[x] do
+					for z=1, #self.grids[x][y] do
+						if self.grids[x][y][z].generate ~= nil then
+							self.grids[x][y][z]:generate()
+						end
+					end
+				end
+			end
+		end
+
 		function world:getById(id)
 			if self.idReferences[id] ~= nil then
 				return self.idReferences[id]
@@ -280,8 +297,9 @@ local m = {}
 			return nil
 		end
 
-		function world:renderCells(referencePoint, camera) --Renders cells less shittily
+		function world:renderCells(referencePoint, camera, debugRender) --Renders cells less shittily
 			local vD = referencePoint.z or 1 --The Z depth of the tiles that should be rendered as foreground
+			local debugRender = debugRender or false
 
 			--Figure out which cells we should actually be drawing
 			local cx1, cy1, _,_,_,_, cx4, cy4 = camera:getVisibleCorners() --Get the visible corners
@@ -292,46 +310,34 @@ local m = {}
 			local startX, startY = tlGrid.x, tlGrid.y
 			local endX, endY = brGrid.x, brGrid.y
 
-			--Store the old draw color
-			local r,g,b,a = love.graphics.getColor()
-			--Set the color for the cells one under view depth (floor)
-			love.graphics.setColor(1,1,1,1)
-			for x = startX, endX do
-				for y = startY, endY do
-					local v = self.grids[x][y][vD+1]
-					if v ~= nil and v.renderCells ~= nil then v:renderCells(false) end
+			if not debugRender then --NORMAL RENDER CASE
+				--Store the old draw color
+				local r,g,b,a = love.graphics.getColor()
+				--Set the color for the cells one under view depth (floor)
+				love.graphics.setColor(1,1,1,1)
+				for x = startX, endX do
+					for y = startY, endY do
+						local v = self.grids[x][y][vD+1]
+						if v ~= nil and v.renderCells ~= nil then v:renderCells(false) end
+					end
+				end
+				--Set the color for the cells at view depth (walls)
+				love.graphics.setColor(0.18,0.18,0.18,1)
+				for x = startX, endX do
+					for y = startY, endY do
+						local v = self.grids[x][y][vD]
+						if v ~= nil and v.renderCells ~= nil then v:renderCells(true) end
+					end
+				end
+				love.graphics.setColor(r, g, b, a) --return to old color
+			elseif debugRender then --DEBUG RENDER CASE
+				for x = startX, endX do
+					for y = startY, endY do
+						local v = self.grids[x][y][referencePoint.z]
+						if v ~= nil and v.renderCells ~= nil then v:renderCells(false, true) end
+					end
 				end
 			end
-			--Set the color for the cells at view depth (walls)
-			love.graphics.setColor(0.18,0.18,0.18,1)
-			for x = startX, endX do
-				for y = startY, endY do
-					local v = self.grids[x][y][vD]
-					if v ~= nil and v.renderCells ~= nil then v:renderCells(true) end
-				end
-			end
-
-			love.graphics.setColor(r, g, b, a) --return to old color
-		end
-
-		function world:debugRender(referencePoint, camera) --Renders an outline of all cells in all grids in the world
-			--Figure out which cells we should actually be drawing
-			local cx1, cy1, _,_,_,_, cx4, cy4 = camera:getVisibleCorners() --Get the visible corners
-			local tlGrid = self:getCellAt(cx1, cy1).parent --Topleft most visible grid
-			local brGrid = self:getCellAt(cx4, cy4).parent --Bottomright most visible grid
-
-			--Set the start and end positions for our for loop
-			local startX, startY = tlGrid.x, tlGrid.y
-			local endX, endY = brGrid.x, brGrid.y
-
-			--Draw the grids we can see
-			for x = startX, endX do
-				for y = startY, endY do
-					local v = self.grids[x][y][referencePoint.z]
-					if v ~= nil and v.debugRender ~= nil then v:debugRender() end
-				end
-			end
-
 		end
 
 		--Assign meta and return our world
