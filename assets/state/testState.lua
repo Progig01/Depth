@@ -53,7 +53,7 @@ local s = {}
 				end
 				--End scuffed shit ------------------------------------------------------------------------------
 
-				if testCell == nil or testCell.contents.wall then
+				if testCell == nil or testCell.contents == nil or testCell.contents.wall then
 					newX, newY = oldX, oldY
 				end
 
@@ -62,23 +62,31 @@ local s = {}
 
 				--Make sure we aren't clipping through corners...
 				if neighbors.s ~= nil and neighbors.e ~= nil and neighbors.se ~=nil then
-					if neighbors.s.contents.wall and neighbors.e.contents.wall and testCell == neighbors.se then --SE corner
-						newX, newY = oldX, oldY
+					if neighbors.s.contents ~= nil and neighbors.e.contents ~= nil and neighbors.se.contents ~=nil then
+						if neighbors.s.contents.wall and neighbors.e.contents.wall and testCell == neighbors.se then --SE corner
+							newX, newY = oldX, oldY
+						end
 					end
 				end
 				if neighbors.s ~= nil and neighbors.w ~= nil and neighbors.sw ~=nil then
-					if neighbors.s.contents.wall and neighbors.w.contents.wall and testCell == neighbors.sw then --SW corner
-						newX, newY = oldX, oldY
+					if neighbors.s.contents ~= nil and neighbors.w.contents ~= nil and neighbors.sw.contents ~=nil then
+						if neighbors.s.contents.wall and neighbors.w.contents.wall and testCell == neighbors.sw then --SW corner
+							newX, newY = oldX, oldY
+						end
 					end
 				end
 				if neighbors.n ~= nil and neighbors.w ~= nil and neighbors.nw ~=nil then
-					if neighbors.n.contents.wall and neighbors.w.contents.wall and testCell == neighbors.nw then --NW corner
-						newX, newY = oldX, oldY
+					if neighbors.n.contents ~= nil and neighbors.w.contents ~= nil and neighbors.nw.contents ~=nil then
+						if neighbors.n.contents.wall and neighbors.w.contents.wall and testCell == neighbors.nw then --NW corner
+							newX, newY = oldX, oldY
+						end
 					end
 				end
 				if neighbors.n ~= nil and neighbors.e ~= nil and neighbors.ne ~=nil then
-					if neighbors.n.contents.wall and neighbors.e.contents.wall and testCell == neighbors.ne then --NE corner
-						newX, newY = oldX, oldY
+					if neighbors.n.contents ~= nil and neighbors.e.contents ~= nil and neighbors.ne.contents ~=nil then
+						if neighbors.n.contents.wall and neighbors.e.contents.wall and testCell == neighbors.ne then --NE corner
+							newX, newY = oldX, oldY
+						end
 					end
 				end
 
@@ -89,11 +97,15 @@ local s = {}
 				--Is the player standing on anything? Should they fall?
 				local ftc = world:getCellAt(t.x, t.y, t.z) -- FTC for Fall Test Cell
 				local fallZ = t.z
-				while ftc:traverse("down") ~= nil and not ftc:traverse("down").contents.solid do
-					fallZ = fallZ + 1
-					ftc = world:getCellAt(t.x, t.y, fallZ)
+				if ftc:traverse("d").contents ~= nil and not ftc:traverse("d").contents.solid then
+					while ftc:traverse("d") ~= nil and not ftc:traverse("d").contents.solid do
+						fallZ = fallZ + 1
+						ftc = world:getCellAt(t.x, t.y, fallZ)
+						if ftc:traverse("d").contents == nil then return end
+					end
+					t.z = fallZ
 				end
-				t.z = fallZ
+				
 			end 
 		end
 

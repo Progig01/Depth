@@ -6,9 +6,10 @@ local m = {}
 
 	function m.createTile(tile, parent) --Creates a new tile based on a tile definition
 		local t = {} --Empty table to copy the definition into
+		local conCheck = true --Set to false if any constraints fail
 
 		local nilToFalse = { --Table of fields to convert from nil to false
-			"isTileEntity", "isINTE", "hasSprite", "isMaterial", "solid", "wall", "breakable"
+			"isTileEntity", "isINTE", "hasSprite", "isMaterial", "solid", "wall", "breakable", "hasPlacementConstraints"
 		}
 
 		for k,v in pairs(tileDefinitions[tile]) do --Copy the definition into a new table...
@@ -22,7 +23,20 @@ local m = {}
 			end
 		end
 
-		return t --...and ship it out
+		if tileDefinitions[tile].hasPlacementConstraints then
+			local con = tileDefinitions[tile].placementConstraints --Load the constraint functions from these strings	
+			for i=1, #con do
+				local cFunc = assert(loadstring(con[i]))()
+				conCheck = cFunc(m, t)
+				if not conCheck then return end
+			end
+		end
+
+		if conCheck then --If it meets all constraint criteria...
+			return t --Ship it out
+		else
+			return nil --Or don't.
+		end
 	end
 
 

@@ -15,7 +15,9 @@ local d = {}
 			solid = false,					--Is this tile solid?
 			wall = false,					--Can we walk through this tile?
 			breakable = false,				--Can you break this tile?
-			hardness = 1  					--	How hard is it to break?
+			hardness = 1,  					--	How hard is it to break?
+			hasPlacementConstraints = false,--Are there rules to where this can be placed?
+			placementConstraints = {}		--	Table of constraints this tile has
 		}
 
 		--Boring material shit
@@ -59,7 +61,21 @@ local d = {}
 			hasSprite = true,
 			spritePath = "assets/img/tile/static_ladderUp.png",
 			breakable = true,
-			hardness = 4
+			hardness = 4,
+			hasPlacementConstraints = true,
+			placementConstraints = {
+				"return function(tileManager, tile) \n"..
+					"local cellNeighbors = tile.parent:getNeighbors() \n"..
+					"print(cellNeighbors.u.x) \n"..
+
+					"if cellNeighbors.u.contents.breakable then \n"..
+						"cellNeighbors.u.contents = tileManager.createTile('tile_ladderDown', cellNeighbors.u) \n"..
+						"return true \n"..
+					"else \n"..
+						"return false \n"..
+					"end \n"..
+				"end"
+			}
 		}
 
 		d.tile_ladderDown = {
@@ -78,7 +94,24 @@ local d = {}
 			hasSprite = true,
 			spritePath = "assets/img/tile/static_ladderDown.png",
 			breakablle = true,
-			hardness = 4
+			hardness = 4,
+			hasPlacementConstraints = true,
+			placementConstraints = {
+				"return function(tileManager, tile) \n"..
+					"local cellNeighbors = tile.parent:getNeighbors() \n"..
+					"if tile.paircheck == nil then tile.paircheck = false end \n"..
+
+					"if cellNeighbors.d.contents.breakable and not tile.paircheck then \n"..
+						"cellNeighbors.d.paircheck = true \n"..
+						"tile.paircheck = true \n"..
+						"cellNeighbors.d.contents = tileManager.createTile('tile_ladderUp', cellNeighbors.d) \n"..
+						"return true \n"..
+					"else \n"..
+						"return false \n"..
+					"end \n"..
+				"end"
+			},
+			placementConstraints = {}
 		}
 
 --Return the definitions list

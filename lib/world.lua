@@ -47,9 +47,8 @@ local m = {}
 		if direction=="sw" 	then return world:getCellAt(x-ts, y+ts, self.z) end --Southwest
 		if direction=="w" 	then return world:getCellAt(x-ts, y+00, self.z) end --West
 		if direction=="nw" 	then return world:getCellAt(x-ts, y-ts, self.z) end --Northwest
-		if direction=="up"	then return world:getCellAt(x   ,    y, self.z-1) end --Up
-		if direction=="down"then return world:getCellAt(x   ,    y, self.z+1) end --Down
-		return nil
+		if direction=="u"	then return world:getCellAt(x   ,    y, self.z-1) end --Up
+		if direction=="d"	then return world:getCellAt(x   ,    y, self.z+1) end --Down
 	end
 
 	function m.cellMeta:assignNeighbors()
@@ -63,8 +62,8 @@ local m = {}
 			self.neighbors.sw=self:traverse("sw")
 			self.neighbors.s=self:traverse("s")
 			self.neighbors.se=self:traverse("se")
-			self.neighbors.up=self:traverse("up")
-			self.neighbors.down=self:traverse("down")
+			self.neighbors.u=self:traverse("u")
+			self.neighbors.d=self:traverse("d") or "WHAT THE FUCK"
 			return true
 		else
 			return false
@@ -283,25 +282,33 @@ local m = {}
 			return x, y, z
 		end
 
-		function world:getCellAt(x,y,z) --Takes a world X Y position and returns the grid and cell at that location
+		function world:getCellAt(x,y,z)--Takes a world XYZ position and returns the grid and cell at that location
 			local maxX, maxY, maxZ = self:getBounds()
-			local x,y,z = x,y,z or 1
-			if x >= 0 and x < maxX and y >= 0 and y < maxY and z >= 1 and z < maxZ then
-				local gridSizeInPixels = self.gridScale * self.tileScale
 
-				local gridX = math.floor(x/gridSizeInPixels)
-				local gridY = math.floor(y/gridSizeInPixels)
-				local cellX = math.floor((x-(gridSizeInPixels*gridX))/self.tileScale)+1
-				local cellY = math.floor((y-(gridSizeInPixels*gridY))/self.tileScale)+1
-				gridX, gridY = gridX+1, gridY+1
+			if x >= 0 and x < maxX and y >= 0 and y < maxY and z >= 1 and z <= maxZ then
+				local gsip = self.gridScale * self.tileScale --gsip = Grid Size In Pixels
 
-				local rGrid = self.grids[gridX][gridY][z]
-				local rCell = rGrid.cells[cellX][cellY]
+				local gX = math.ceil(x/gsip)
+				local gY = math.ceil(y/gsip)
+				local cX = math.ceil((x-(gsip*(x%gsip)))/self.tileScale)
+				local cY = math.ceil((y-(gsip*(y%gsip)))/self.tileScale)
 
-				return rCell
+				if gX <= 0 then gX = 1 end
+				if gY <= 0 then gY = 1 end
+				if cX <= 0 then cX = 1 end
+				if cY <= 0 then cY = 1 end
+
+				--local rGrid = self.grids[gX][gY][z]
+				--local rCell = rGrid.cells[cX][cY]
+
+				return self.grids[gX][gY][z].cells[cX][cY]
+
+				--return rCell			
 			end
-			return nil
 		end
+
+
+
 
 		function world:renderCells(referencePoint, camera, debugRender) --Renders cells less shittily
 			local vD = referencePoint.z or 1 --The Z depth of the tiles that should be rendered as foreground
@@ -314,12 +321,8 @@ local m = {}
 			if cx3 > (self.worldWidth * (self.gridScale*self.tileScale)) - 1 then cx3 = self.gridScale*self.tileScale - 1 end
 			if cy3 > (self.worldHeight * (self.gridScale*self.tileScale)) - 1 then cy3 = self.gridScale*self.tileScale - 1 end
 
-			--print(cx1, cy1, "||" , cx3, cy3)
-			local tlCell = self:getCellAt(cx1, cy1) --Topleft most visible cell
-			local brCell = self:getCellAt(cx3-1, cy3-1) --Bottomright most visible cell
-
-			--print(tlCell, brCell)
-			print(self:getCellAt(0, 1025))
+			local tlCell = self:getCellAt(cx1, cy1, vD) --Topleft most visible cell
+			local brCell = self:getCellAt(cx3-1, cy3-1, vD) --Bottomright most visible cell
 
 			local tlGrid = tlCell.parent --Grid of the Topleft most visible cell
 			local brGrid = brCell.parent --Grid of the Bottomright most visible cell
