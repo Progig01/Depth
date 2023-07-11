@@ -1,7 +1,7 @@
 --Create a table to store the definitions list
 local d = {}
 		--Tile definitions
-		d.tile_air = { --This one has ALL the fields, if you don't need it, don't add it.
+		d.tile_air = { --This one has ALL the fields, if you don't need it (false or nil), don't add it.
 			name = "tile_air",				--Name of the tile, for reference in code
 			localizedName = {en="Air"},	--	Localized name(s) for the tile, displayed to player
 			isTileEntity = false,			--If this tile is a tileEntity
@@ -12,7 +12,8 @@ local d = {}
 			spritePath = nil,				--	If so, where is it?
 			isMaterial = false,				--Is this tile a procedurally textured material?
 			materialName = nil,				--	If so, whats the material called?
-			solid = false,					--Does this tile have collision?
+			solid = false,					--Is this tile solid?
+			wall = false,					--Can we walk through this tile?
 			breakable = false,				--Can you break this tile?
 			hardness = 1  					--	How hard is it to break?
 		}
@@ -21,11 +22,10 @@ local d = {}
 		d.tile_dirt = {
 			name = "tile_dirt",
 			localizedName = {en="Dirt"},
-			isTileEntity = false,
-			hasSprite = false,
 			isMaterial = true,
 			materialName = 'dirt',
 			solid = true,
+			wall = true,
 			breakable = true,
 			hardness = 1
 		}
@@ -34,10 +34,10 @@ local d = {}
 			name = "tile_grass",
 			localizedName = {en="Grass"},
 			isTileEntity = false,
-			hasSprite = false,
 			isMaterial = true,
 			materialName = 'grass',
 			solid = true,
+			wall = true,
 			breakable = true,
 			hardness = 2
 		}
@@ -46,21 +46,38 @@ local d = {}
 		d.tile_ladderUp = {
 			name = "tile_ladderUp",
 			localizedName = {en="Ladder (Up)"},
-			isTileEntity = false,
+			solid = true,
 			isINTE = true,
-			inteFunc = function(entity) --The entity interacting with the INTE
+			inteFunc = function(self, entity)
 				local et = entity.transform
 				if self.parent:isWithin(et.x, et.y, et.z) then --If we're inside the tile
-					if et.z > 2 then
+					if et.z >= 2 then
 						et.z = et.z - 1 --Go up
 					end
 				end
 			end,
 			hasSprite = true,
 			spritePath = "assets/img/tile/static_ladderUp.png",
-			isMaterial = false,
-			solid = false,
 			breakable = true,
+			hardness = 4
+		}
+
+		d.tile_ladderDown = {
+			name = "tile_ladderDown",
+			localizedName = {en="Ladder (Down)"},
+			solid = true,
+			isINTE = true,
+			inteFunc = function(self, entity)
+				local et = entity.transform
+				if self.parent:isWithin(et.x, et.y, et.z) then --If we're inside the tile
+					if et.z < entity.world.worldDepth then
+						et.z = et.z + 1 --Go down
+					end
+				end
+			end,
+			hasSprite = true,
+			spritePath = "assets/img/tile/static_ladderDown.png",
+			breakablle = true,
 			hardness = 4
 		}
 

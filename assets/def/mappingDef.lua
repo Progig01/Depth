@@ -10,11 +10,12 @@ local d = {}
 			a = "left", 
 			left = "left",
 			d = "right",
-			right = "right"
+			right = "right",
+			e = "interact"
 		},
 
 		mouse = {
-
+			"break", "place"
 		},
 
 		scrollValue = {x=0, y=0},

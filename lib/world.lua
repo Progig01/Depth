@@ -36,30 +36,35 @@ local m = {}
 
 	function m.cellMeta:traverse(direction) --Returns the neighboring cell in the given direction
 		local x,y = self:getScreenPos()
-		local ts = self.parent.parent.tileScale
+		local world = self.parent.parent
+		local ts = world.tileScale
 
-		if direction=="n" 	then return self.parent.parent:getCellAt(x+00, y-ts) end --North
-		if direction=="ne" 	then return self.parent.parent:getCellAt(x+ts, y-ts) end --Northeast
-		if direction=="e" 	then return self.parent.parent:getCellAt(x+ts, y+00) end --East
-		if direction=="se" 	then return self.parent.parent:getCellAt(x+ts, y+ts) end --Southeast
-		if direction=="s" 	then return self.parent.parent:getCellAt(x+00, y+ts) end --South
-		if direction=="sw" 	then return self.parent.parent:getCellAt(x-ts, y+ts) end --Southwest
-		if direction=="w" 	then return self.parent.parent:getCellAt(x-ts, y+00) end --West
-		if direction=="nw" 	then return self.parent.parent:getCellAt(x-ts, y-ts) end --Northwest
+		if direction=="n" 	then return world:getCellAt(x+00, y-ts, self.z) end --North
+		if direction=="ne" 	then return world:getCellAt(x+ts, y-ts, self.z) end --Northeast
+		if direction=="e" 	then return world:getCellAt(x+ts, y+00, self.z) end --East
+		if direction=="se" 	then return world:getCellAt(x+ts, y+ts, self.z) end --Southeast
+		if direction=="s" 	then return world:getCellAt(x+00, y+ts, self.z) end --South
+		if direction=="sw" 	then return world:getCellAt(x-ts, y+ts, self.z) end --Southwest
+		if direction=="w" 	then return world:getCellAt(x-ts, y+00, self.z) end --West
+		if direction=="nw" 	then return world:getCellAt(x-ts, y-ts, self.z) end --Northwest
+		if direction=="up"	then return world:getCellAt(x   ,    y, self.z-1) end --Up
+		if direction=="down"then return world:getCellAt(x   ,    y, self.z+1) end --Down
 		return nil
 	end
 
 	function m.cellMeta:assignNeighbors()
 		if self.neighbors == nil then
 			self.neighbors = {}
-			self.neighbors[1]=self:traverse("nw")
-			self.neighbors[2]=self:traverse("n")
-			self.neighbors[3]=self:traverse("ne")
-			self.neighbors[4]=self:traverse("w")
-			self.neighbors[5]=self:traverse("e")
-			self.neighbors[6]=self:traverse("sw")
-			self.neighbors[7]=self:traverse("s")
-			self.neighbors[8]=self:traverse("se")
+			self.neighbors.nw=self:traverse("nw")
+			self.neighbors.n=self:traverse("n")
+			self.neighbors.ne=self:traverse("ne")
+			self.neighbors.w=self:traverse("w")
+			self.neighbors.e=self:traverse("e")
+			self.neighbors.sw=self:traverse("sw")
+			self.neighbors.s=self:traverse("s")
+			self.neighbors.se=self:traverse("se")
+			self.neighbors.up=self:traverse("up")
+			self.neighbors.down=self:traverse("down")
 			return true
 		else
 			return false
@@ -108,7 +113,7 @@ local m = {}
 			--Handle solid-transparency cases
 			if drawable ~= nil then
 				if solidTransparency then
-					if not self.contents.solid then
+					if not self.contents.solid or not self.contents.wall then
 						local r,g,b,a = love.graphics.getColor()
 						love.graphics.setColor(1,1,1,1)
 						love.graphics.draw(drawable, dX, dY) --Draw it with solid-transparency, solid-transparent
@@ -139,12 +144,13 @@ local m = {}
 
 	end
 
-	function m.newCell(x, y, parent)
+	function m.newCell(x, y, z, parent)
 		--Create a table to be our cell
 		local cell = {
 			id = 0,
 			x = x,
 			y = y,
+			z = z,
 			contents = {},
 			debugHighlight = false,
 			parent = parent
@@ -161,7 +167,7 @@ local m = {}
 
 	m.gridMeta = {} --Metatable to hold functions used by all grid objects
 	function m.gridMeta:generate() --Populate the empty cells with air (TODO: Real world gen, dumbass)
-		local tileNames = {"tile_air", "tile_grass"}
+		local tileNames = {"tile_grass", "tile_dirt"}
 		for i=1, #self.cells do
 			for k,v in pairs(self.cells[i]) do
 				self.isGenerated = true
@@ -206,7 +212,7 @@ local m = {}
 		for cX=1, grid.parent.gridScale do
 			grid.cells[cX] = {}
 			for cY=1, grid.parent.gridScale do
-				grid.cells[cX][cY] = m.newCell(cX, cY, grid)
+				grid.cells[cX][cY] = m.newCell(cX, cY, grid.z, grid)
 			end
 		end
 
@@ -272,7 +278,7 @@ local m = {}
 
 		function world:getBounds()
 			local x = (world.tileScale * world.gridScale) * self.worldWidth
-			local y = (world.tileScale * world.gridScale) * self.worldWidth
+			local y = (world.tileScale * world.gridScale) * self.worldHeight
 			local z = world.worldDepth
 			return x, y, z
 		end
@@ -302,9 +308,21 @@ local m = {}
 			local debugRender = debugRender or false
 
 			--Figure out which cells we should actually be drawing
-			local cx1, cy1, _,_,_,_, cx4, cy4 = camera:getVisibleCorners() --Get the visible corners
-			local tlGrid = self:getCellAt(cx1, cy1).parent --Topleft most visible grid
-			local brGrid = self:getCellAt(cx4, cy4).parent --Bottomright most visible grid
+			local cx1,cy1,cx2,cy2,cx3,cy3,cx4,cy4 = camera:getVisibleCorners() --Get the visible corners
+			if cx1 < 0 then cx1=0 end
+			if cy1 < 0 then cy1=0 end
+			if cx3 > (self.worldWidth * (self.gridScale*self.tileScale)) - 1 then cx3 = self.gridScale*self.tileScale - 1 end
+			if cy3 > (self.worldHeight * (self.gridScale*self.tileScale)) - 1 then cy3 = self.gridScale*self.tileScale - 1 end
+
+			--print(cx1, cy1, "||" , cx3, cy3)
+			local tlCell = self:getCellAt(cx1, cy1) --Topleft most visible cell
+			local brCell = self:getCellAt(cx3-1, cy3-1) --Bottomright most visible cell
+
+			--print(tlCell, brCell)
+			print(self:getCellAt(0, 1025))
+
+			local tlGrid = tlCell.parent --Grid of the Topleft most visible cell
+			local brGrid = brCell.parent --Grid of the Bottomright most visible cell
 
 			--Set the start and end positions for our for loop
 			local startX, startY = tlGrid.x, tlGrid.y

@@ -10,14 +10,33 @@ local tile = require("lib/tile")
 local m = {}
 
 function m.load()
-	--Make a camera
-	mainCamera = gamera.new(0,0,2048,2048)
-	mainCamera:setScale(3.0)
-
 	--Make a world
-	myWorld = world.newWorld(2,2,16)
+	myWorld = world.newWorld(2,1,4)
 	myWorld.seed = 111211811
 	myWorld:generate()
+	myWorld.mainCamera = mainCamera
+
+	--Make a camera
+	local cameraBoundX = (myWorld.worldWidth * (myWorld.tileScale * myWorld.gridScale))-1
+	local cameraBoundY = (myWorld.worldHeight * (myWorld.tileScale * myWorld.gridScale))-1
+	mainCamera = gamera.new(0,0, cameraBoundX, cameraBoundY)
+	mainCamera:setScale(3.0)
+
+	for x=1, #myWorld.grids do
+		for y=1, #myWorld.grids[x] do
+			for x2=1, #myWorld.grids[x][y][1].cells do
+				for y2=1, #myWorld.grids[x][y][1].cells[x2] do
+					myWorld.grids[x][y][1].cells[x2][y2].contents = tile.createTile("tile_air")
+				end
+			end
+		end
+	end
+
+
+	testCell = myWorld.grids[1][1][2].cells[4][4]
+	testCell2 = myWorld.grids[1][1][1].cells[4][4]
+	testCell.contents = tile.createTile("tile_ladderUp", testCell)
+	testCell2.contents = tile.createTile("tile_ladderDown", testCell2)
 
 	--Make a player, attached to the world
 	myEntity = entity.createEntity("playerEntity", myWorld)

@@ -53,7 +53,7 @@ local s = {}
 				end
 				--End scuffed shit ------------------------------------------------------------------------------
 
-				if testCell == nil or testCell.contents.solid then
+				if testCell == nil or testCell.contents.wall then
 					newX, newY = oldX, oldY
 				end
 
@@ -61,23 +61,23 @@ local s = {}
 				local neighbors = oldCell:getNeighbors()
 
 				--Make sure we aren't clipping through corners...
-				if neighbors[7] ~= nil and neighbors[5] ~= nil and neighbors[8] ~=nil then
-					if neighbors[7].contents.solid and neighbors[5].contents.solid and testCell == neighbors[8] then --SE corner
+				if neighbors.s ~= nil and neighbors.e ~= nil and neighbors.se ~=nil then
+					if neighbors.s.contents.wall and neighbors.e.contents.wall and testCell == neighbors.se then --SE corner
 						newX, newY = oldX, oldY
 					end
 				end
-				if neighbors[7] ~= nil and neighbors[4] ~= nil and neighbors[6] ~=nil then
-					if neighbors[7].contents.solid and neighbors[4].contents.solid and testCell == neighbors[6] then --SW corner
+				if neighbors.s ~= nil and neighbors.w ~= nil and neighbors.sw ~=nil then
+					if neighbors.s.contents.wall and neighbors.w.contents.wall and testCell == neighbors.sw then --SW corner
 						newX, newY = oldX, oldY
 					end
 				end
-				if neighbors[2] ~= nil and neighbors[4] ~= nil and neighbors[1] ~=nil then
-					if neighbors[2].contents.solid and neighbors[4].contents.solid and testCell == neighbors[1] then --NW corner
+				if neighbors.n ~= nil and neighbors.w ~= nil and neighbors.nw ~=nil then
+					if neighbors.n.contents.wall and neighbors.w.contents.wall and testCell == neighbors.nw then --NW corner
 						newX, newY = oldX, oldY
 					end
 				end
-				if neighbors[2] ~= nil and neighbors[5] ~= nil and neighbors[3] ~=nil then
-					if neighbors[2].contents.solid and neighbors[5].contents.solid and testCell == neighbors[3] then --NE corner
+				if neighbors.n ~= nil and neighbors.e ~= nil and neighbors.ne ~=nil then
+					if neighbors.n.contents.wall and neighbors.e.contents.wall and testCell == neighbors.ne then --NE corner
 						newX, newY = oldX, oldY
 					end
 				end
@@ -87,21 +87,39 @@ local s = {}
 				t.x, t.y = newX, newY
 
 				--Is the player standing on anything? Should they fall?
-				local fallTestCell = entity.world:getCellAt(newX-scale, newY-scale, oldZ+1)
-				while fallTestCell ~= nil and fallTestCell.contents.solid ~= true do
-					t.z = t.z + 1
-					if fallTestCell ~= nil then
-						fallTestCell = entity.world:getCellAt(newX-scale, newY-scale, t.z+1)
-					else
-						return
-					end
+				local ftc = world:getCellAt(t.x, t.y, t.z) -- FTC for Fall Test Cell
+				local fallZ = t.z
+				while ftc:traverse("down") ~= nil and not ftc:traverse("down").contents.solid do
+					fallZ = fallZ + 1
+					ftc = world:getCellAt(t.x, t.y, fallZ)
 				end
+				t.z = fallZ
 			end 
 		end
 
 		--Handle interaction
+		if entity ~= nil and world ~= nil then
 
+			--This whole block ensures we only interact once when we release the key
+			iThisFrame = false
+			if controller.interact then
+				iThisFrame = true
+			elseif not controller.interact then
+				iThisFrame = false
+			end
 
+			if not iThisFrame and iLastFrame then --This is when we actually interact
+				local mX, mY = world.mainCamera:toWorld(love.mouse.getPosition())
+				local iCell = world:getCellAt(mX, mY, entity.transform.z)
+
+				if iCell ~= nil and iCell.contents.isINTE and iCell.contents ~= nil then
+					if iCell.contents.inteFunc ~= nil then
+						iCell.contents:inteFunc(entity)
+					end
+				end
+			end
+			iLastFrame = iThisFrame
+		end
 
 	end
 
