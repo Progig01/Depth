@@ -45,73 +45,82 @@ local d = {}
 		}
 
 		--Interactable Non-Tile-Entities (They do something when you interact, but not every tick)
-		d.tile_ladderUp = {
-			name = "tile_ladderUp",
-			localizedName = {en="Ladder (Up)"},
+		d.tile_ladder = { --Less ass ladders?
+			name = "ladder",
+			localizedName = {en="Ladder"},
 			solid = true,
-			isINTE = true,
-			inteFunc = function(self, entity)
-				local et = entity.transform
-				if self.parent:isWithin(et.x, et.y, et.z) then --If we're inside the tile
-					if et.z >= 2 then
-						et.z = et.z - 1 --Go up
-					end
-				end
-			end,
-			hasSprite = true,
-			spritePath = "assets/img/tile/static_ladderUp.png",
 			breakable = true,
 			hardness = 4,
-			hasPlacementConstraints = true,
-			placementConstraints = {
-				"return function(tileManager, tile) \n"..
-					"local cellNeighbors = tile.parent:getNeighbors() \n"..
-					"print(cellNeighbors.u.x) \n"..
-
-					"if cellNeighbors.u.contents.breakable then \n"..
-						"cellNeighbors.u.contents = tileManager.createTile('tile_ladderDown', cellNeighbors.u) \n"..
-						"return true \n"..
-					"else \n"..
-						"return false \n"..
-					"end \n"..
-				"end"
-			}
-		}
-
-		d.tile_ladderDown = {
-			name = "tile_ladderDown",
-			localizedName = {en="Ladder (Down)"},
-			solid = true,
+			hasSprite = true, 
+			spritePath = "assets/img/tile/static_ladderDown.png",
 			isINTE = true,
 			inteFunc = function(self, entity)
-				local et = entity.transform
-				if self.parent:isWithin(et.x, et.y, et.z) then --If we're inside the tile
-					if et.z < entity.world.worldDepth then
-						et.z = et.z + 1 --Go down
+				
+			end,
+			hasPlacementConstraints = true,
+			placementConstraints = {function(self, tileManager)
+				--Convenience assignments
+				local cell = self.parent
+				local grid = self.parent.parent
+				local world = self.parent.parent.parent
+
+				--Create a ladder cache, if the world does not already have one
+				if world.cache.ladder == nil then
+					world.cache.ladder = {}
+				end
+
+				--Store the ladder to the cache
+				local cacheAddress = grid.x .. grid.y .. cell.x .. cell.y
+				local cache = world.cache.ladder
+				if cache[cacheAddress] == nil then
+					cache[cacheAddress] = {}
+				end
+				cache[cacheAddress][cell.z] = cell
+
+
+				function self:getTop()
+					local highest = nil
+					for k,v in pairs(cache[cacheAddress]) do
+						if highest == nil then
+							highest = k 
+						elseif k < highest then
+							highest = k
+						end
+					end
+					return cache[cacheAddress][highest]
+				end
+
+				function self:getBottom()
+					local lowest = nil
+					for k,v in pairs(cache[cacheAddress]) do
+						if highest == nil then
+							lowest = k 
+						elseif k > lowest then
+							lowest = k
+						end
+					end
+					return cache[cacheAddress][lowest]
+				end
+
+				--If the ladder is at the bottom of a column, set the isBottom state
+				if cell ~= nil and cell:traverse('d') ~= nil then
+					if cell:traverse('d').contents.name ~= ladder then
+						self.isBottom = true
+					else
+					    self.isBottom = false
 					end
 				end
-			end,
-			hasSprite = true,
-			spritePath = "assets/img/tile/static_ladderDown.png",
-			breakablle = true,
-			hardness = 4,
-			hasPlacementConstraints = true,
-			placementConstraints = {
-				"return function(tileManager, tile) \n"..
-					"local cellNeighbors = tile.parent:getNeighbors() \n"..
-					"if tile.paircheck == nil then tile.paircheck = false end \n"..
 
-					"if cellNeighbors.d.contents.breakable and not tile.paircheck then \n"..
-						"cellNeighbors.d.paircheck = true \n"..
-						"tile.paircheck = true \n"..
-						"cellNeighbors.d.contents = tileManager.createTile('tile_ladderUp', cellNeighbors.d) \n"..
-						"return true \n"..
-					"else \n"..
-						"return false \n"..
-					"end \n"..
-				"end"
-			},
-			placementConstraints = {}
+				--If the column is only one tall, place one underneath it (if breakable)
+				print(self.isBottom, self.isTop)
+
+				if self.isBottom and self.isTop and not cell:traverse('d').contents.solid then
+					cell:traverse('d').contents = tileManager.createTile("tile_ladder", cell:traverse('d'))
+					return true
+				else
+					return false
+				end
+			end}
 		}
 
 --Return the definitions list

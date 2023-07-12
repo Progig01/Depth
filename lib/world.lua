@@ -9,10 +9,19 @@ local m = {}
 	function m.cellMeta:getScreenPos() --gets the current screen position of the cell for drawing and other stuff
 		local world = self.parent.parent
 		local grid = self.parent 
-		local gridSizeInPixels = world.tileScale * world.gridScale
+		local gsip = world.tileScale * world.gridScale
 
-		local drawX = (gridSizeInPixels * (grid.x-1)) + (world.tileScale * (self.x-1))
-		local drawY = (gridSizeInPixels * (grid.y-1)) + (world.tileScale * (self.y-1))
+		if grid.x > 1 then
+			drawX = (gsip*grid.x) + (world.tileScale*self.x)
+		else
+			drawX = world.tileScale*self.x
+		end
+
+		if grid.y > 1 then
+			drawY = (gsip*grid.y) + (world.tileScale*self.y)
+		else
+			drawY = world.tileScale*self.y
+		end
 
 		return drawX, drawY
 	end
@@ -233,7 +242,8 @@ local m = {}
 			gridScale = 32,
 			tileScale = 32,
 			grids = {},
-			spriteCache = {}
+			spriteCache = {},
+			cache = {}
 		}
 
 		--Make a table to have references to every object in the grid via ID
@@ -290,20 +300,32 @@ local m = {}
 
 				local gX = math.ceil(x/gsip)
 				local gY = math.ceil(y/gsip)
-				local cX = math.ceil((x-(gsip*(x%gsip)))/self.tileScale)
-				local cY = math.ceil((y-(gsip*(y%gsip)))/self.tileScale)
+				local cX = math.ceil((x%gsip)/self.tileScale)
+				local cY = math.ceil((y%gsip)/self.tileScale)
 
-				if gX <= 0 then gX = 1 end
-				if gY <= 0 then gY = 1 end
-				if cX <= 0 then cX = 1 end
-				if cY <= 0 then cY = 1 end
+				if x > gsip then
+					local tgx = x-(gsip*gX)
+					cX = math.floor(tgx/self.tileScale)
+				else
+					cX = math.floor(x/self.tileScale)
+				end
 
-				--local rGrid = self.grids[gX][gY][z]
-				--local rCell = rGrid.cells[cX][cY]
+				if y > gsip then
+					local tgy = y-(gsip*gX)
+					cY = math.floor(tgy/self.tileScale)
+				else
+					cY = math.floor(y/self.tileScale)
+				end
 
-				return self.grids[gX][gY][z].cells[cX][cY]
+				if gX <= 0 or gX == nil then gX = 1 end
+				if gY <= 0 or gY == nil then gY = 1 end
+				if cX <= 0 or cX == nil then cX = 1 end
+				if cY <= 0 or cY == nil then cY = 1 end
 
-				--return rCell			
+				--print("INPUT:",x,y)
+				--print("OUTPUT :: GRID:",gX, gY, "CELL:",cX, cY)
+
+				return self.grids[gX][gY][z].cells[cX][cY]		
 			end
 		end
 

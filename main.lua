@@ -35,7 +35,8 @@ end
 
 function love.draw()
     mainCamera:draw(dBug.draw)
-
+    love.graphics.print("DEPTH: " .. myEntity.transform.z, 0,0)
+    
     if PROFILE then
     	love.graphics.print(love.report or "Please wait...")
     end

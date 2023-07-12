@@ -12,7 +12,7 @@ local m = {}
 
 function m.load()
 	--Make a world
-	myWorld = world.newWorld(2,2,4)
+	myWorld = world.newWorld(1,1,4)
 	myWorld.seed = 111211811
 	myWorld:generate()
 
@@ -26,13 +26,16 @@ function m.load()
 		end
 	end
 	
-	testCell = myWorld.grids[1][1][3].cells[4][4]
-	testCell2 = myWorld.grids[1][1][2].cells[4][5]
-	testCell3 = myWorld.grids[1][1][4].cells[4][4]
+	testCell = myWorld.grids[1][1][1].cells[4][4]
+	testCell2 = myWorld.grids[1][1][1].cells[4][4]
+	testCell3 = myWorld.grids[1][1][3].cells[4][4]
 
-	--testCell.contents = tile.createTile("tile_ladderUp", testCell) --FIX THE LADDERS AFTER YOU FIGURE OUT WHY NEIGHBORS NOT RETURNING UP AND DOWN
+	testCell.contents = tile.createTile("tile_ladder", testCell) --FIX THE LADDERS AFTER YOU FIGURE OUT WHY NEIGHBORS NOT RETURNING UP AND DOWN
 	--testCell2.contents = tile.createTile("tile_ladderUp", testCell2)
 
+	--print(testCell.contents.name)
+	--print(testCell2.contents.name)
+	--print(testCell3.contents.name)
 
 	--Make a camera
 	local cameraBoundX = (myWorld.worldWidth * (myWorld.tileScale * myWorld.gridScale))-1

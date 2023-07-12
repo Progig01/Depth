@@ -124,9 +124,16 @@ local s = {}
 				local mX, mY = world.mainCamera:toWorld(love.mouse.getPosition())
 				local iCell = world:getCellAt(mX, mY, entity.transform.z)
 
-				if iCell ~= nil and iCell.contents.isINTE and iCell.contents ~= nil then
+				print(mX, mY)
+				print(iCell.contents.name)
+
+				if iCell ~= nil and iCell.contents ~= nil and iCell.contents.isINTE then
 					if iCell.contents.inteFunc ~= nil then
 						iCell.contents:inteFunc(entity)
+					end
+				elseif iCell:traverse('d').contents ~= nil and iCell:traverse('d').contents.isINTE and iCell.contents ~= solid then
+					if iCell:traverse('d').contents.inteFunc ~= nil then
+						iCell:traverse('d').contents:inteFunc(entity)
 					end
 				end
 			end

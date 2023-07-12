@@ -26,8 +26,9 @@ local m = {}
 		if tileDefinitions[tile].hasPlacementConstraints then
 			local con = tileDefinitions[tile].placementConstraints --Load the constraint functions from these strings	
 			for i=1, #con do
-				local cFunc = assert(loadstring(con[i]))()
-				conCheck = cFunc(m, t)
+				local cFunc = con[i]
+				conCheck = cFunc(t, m)
+				print(conCheck)
 				if not conCheck then return end
 			end
 		end
