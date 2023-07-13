@@ -28,6 +28,7 @@ local m = {}
 
 	function m.cellMeta:isWithin(x,y,z) --Checks if a given x,y,z position is within this cell
 		local world = self.parent.parent
+		local x,y,z = x,y,z or 1
 
 		local minX, minY = self:getScreenPos()
 		local maxX, maxY = minX+world.tileScale, minY+world.tileScale

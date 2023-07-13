@@ -52,10 +52,25 @@ local d = {}
 			breakable = true,
 			hardness = 4,
 			hasSprite = true, 
-			spritePath = "assets/img/tile/static_ladderDown.png",
+			spritePath = "assets/img/tile/static_ladderUp.png",
 			isINTE = true,
 			inteFunc = function(self, entity)
-				
+				--Convenience assignments
+				local cell = self.parent
+				local grid = cell.parent
+				local world = grid.parent
+
+				--Check if the player is within the tile
+				local px, py = entity.transform:getPosition()
+				if cell:isWithin(px, py) then
+					if cell == self:getTop() then
+						local bottom = self:getBottom()
+						entity.transform.z = bottom.z
+					else
+						local top = self:getTop()
+						entity.transform.z = top.z
+					end
+				end
 			end,
 			hasPlacementConstraints = true,
 			placementConstraints = {function(self, tileManager)
@@ -102,20 +117,27 @@ local d = {}
 					return cache[cacheAddress][lowest]
 				end
 
-				--If the ladder is at the bottom of a column, set the isBottom state
-				if cell ~= nil and cell:traverse('d') ~= nil then
-					if cell:traverse('d').contents.name ~= ladder then
-						self.isBottom = true
+				for k,v in pairs(cache[cacheAddress]) do
+					if v == self:getTop() then
+						v.contents.isTop = true
+						v.contents.spritePath = "assets/img/tile/static_ladderDown.png"
 					else
-					    self.isBottom = false
+						v.contents.isTop = false
+					end
+
+					if v == self:getBottom() then
+						v.contents.isBottom = true
+					else
+						v.contents.isBottom = false
 					end
 				end
 
-				--If the column is only one tall, place one underneath it (if breakable)
-				print(self.isBottom, self.isTop)
 
-				if self.isBottom and self.isTop and not cell:traverse('d').contents.solid then
-					cell:traverse('d').contents = tileManager.createTile("tile_ladder", cell:traverse('d'))
+				if self:getTop() == self.parent and self:getBottom() == self.parent and cell:traverse('d').contents.breakable then
+					local t = tileManager.createTile("tile_ladder", cell:traverse('d'))
+					cell:traverse('d').contents = t
+					return true
+				elseif self.breakable then
 					return true
 				else
 					return false

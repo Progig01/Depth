@@ -28,7 +28,7 @@ local m = {}
 			for i=1, #con do
 				local cFunc = con[i]
 				conCheck = cFunc(t, m)
-				print(conCheck)
+				--print(conCheck)
 				if not conCheck then return end
 			end
 		end
@@ -36,7 +36,7 @@ local m = {}
 		if conCheck then --If it meets all constraint criteria...
 			return t --Ship it out
 		else
-			return nil --Or don't.
+			return m.createTile("tile_air", parent) --Or if it fails, put air there.
 		end
 	end
 
